@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 from coffea import processor
 
-from hpt.common_vars import LUMI
+from hbb.common_vars import LUMI
 
 logging.basicConfig(level=logging.INFO)
 
