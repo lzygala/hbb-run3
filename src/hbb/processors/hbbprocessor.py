@@ -13,7 +13,7 @@ from coffea import processor
 from coffea.analysis_tools import PackedSelection, Weights
 
 from .. import utils
-from hpt import common_vars
+from hbb import common_vars
 from .GenSelection import gen_selection_V, gen_selection_HHbbbb, gen_selection_Hbb
 from .objects import (
     get_ak8jets,
