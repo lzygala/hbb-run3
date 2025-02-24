@@ -9,3 +9,4 @@ outfiles/
 src/hbb/__pycache__/
 src/hbb/processors/__pycache__/
 
+boostedhiggs/.DS_Store
