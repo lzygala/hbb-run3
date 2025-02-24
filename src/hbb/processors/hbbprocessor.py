@@ -38,7 +38,7 @@ gen_selection_dict = {
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-class HbbProcessor(SkimmerABC):
+class hbbprocessor(SkimmerABC):
     """
     Skims nanoaod files, saving selected branches and events passing preselection cuts
     (and triggers for data).
