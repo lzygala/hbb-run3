@@ -1,3 +1,11 @@
 
 boostedhiggs/processors/.DS_Store
 .DS_Store
+
+
+*.parquet
+
+outfiles/
+src/hbb/__pycache__/
+src/hbb/processors/__pycache__/
+
