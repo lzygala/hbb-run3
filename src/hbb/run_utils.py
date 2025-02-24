@@ -134,9 +134,9 @@ def get_processor(
     nano_version: str | None = None,
 ):
     # define processor
-    if processor == "ptSkimmer":
-        from hpt.processors import ptSkimmer
-        return ptSkimmer(
+    if processor == "hbbprocessor":
+        from hbb.processors import hbbprocessor
+        return hbbprocessor(
             xsecs=xsecs,
         )
 
@@ -146,7 +146,7 @@ def parse_common_args(parser):
         required=True,
         help="processor",
         type=str,
-        choices=["ptSkimmer"],
+        choices=["hbbprocessor"],
     )
 
     parser.add_argument(
