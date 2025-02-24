@@ -4,11 +4,11 @@ build-backend = "hatchling.build"
 
 
 [project]
-name = "hpt"
+name = "hbb"
 authors = [
   { name = "Cristina MantillaSuarez", email = "criss.ms7@gmail.com" },
 ]
-description = "hpt"
+description = "hbb"
 readme = "README.md"
 requires-python = ">=3.8"
 classifiers = [
@@ -58,7 +58,7 @@ Changelog = "https://github.com/cmantill/hpt/releases"
 
 
 [tool.hatch]
-version.path = "src/hpt/__init__.py"
+version.path = "src/hbb/__init__.py"
 envs.default.dependencies = [
   "pytest",
   "pytest-cov",
@@ -81,7 +81,7 @@ testpaths = [
 
 
 [tool.coverage]
-run.source = ["hpt"]
+run.source = ["hbb"]
 port.exclude_lines = [
   'pragma: no cover',
   '\.\.\.',
@@ -100,7 +100,7 @@ disallow_untyped_defs = false
 disallow_incomplete_defs = false
 
 [[tool.mypy.overrides]]
-module = "hpt.*"
+module = "hbb.*"
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 
@@ -153,7 +153,7 @@ ignore = [
 ]
 isort.required-imports = ["from __future__ import annotations"]
 # Uncomment if using a _compat.typing backport
-# typing-modules = ["hpt._compat.typing"]
+# typing-modules = ["hbb._compat.typing"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["T20"]
