@@ -16,8 +16,8 @@ import uproot
 import yaml
 from coffea import nanoevents, processor
 
-from hpt import run_utils
-from hpt.common_vars import DATA_SAMPLES
+from hbb import run_utils
+from hbb.common_vars import DATA_SAMPLES
 
 def run(p: processor, fileset: dict, skipbadfiles: bool, args):
     """Run processor without fancy dask (outputs then need to be accumulated manually)"""
