@@ -1,12 +1,9 @@
 
-boostedhiggs/processors/.DS_Store
-.DS_Store
+*.DS_Store
 
 
 *.parquet
 
 outfiles/
-src/hbb/__pycache__/
-src/hbb/processors/__pycache__/
+*/__pycache__/
 
-boostedhiggs/.DS_Store
