@@ -7,6 +7,8 @@ build-backend = "hatchling.build"
 name = "hbb"
 authors = [
   { name = "Cristina MantillaSuarez", email = "criss.ms7@gmail.com" },
+  { name = "Gabriela Hamilton", email = "gabihamilton@gmail.com" },
+
 ]
 description = "hbb"
 readme = "README.md"
@@ -30,6 +32,9 @@ classifiers = [
 ]
 dynamic = ["version", "dependencies"]
 
+[tool.hatch]
+version.path = "src/hbb/__init__.py"
+
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
 
@@ -38,34 +43,12 @@ test = [
   "pytest >=6",
   "pytest-cov >=3",
 ]
-dev = [
-  "pytest >=6",
-  "pytest-cov >=3",
-]
-docs = [
-  "sphinx>=7.0",
-  "myst_parser>=0.13",
-  "sphinx_copybutton",
-  "sphinx_autodoc_typehints",
-  "furo>=2023.08.17",
-]
 
 [project.urls]
-Homepage = "https://github.com/cmantill/hpt"
-"Bug Tracker" = "https://github.com/cmantill/hpt/issues"
-Discussions = "https://github.com/cmantill/hpt/discussions"
-Changelog = "https://github.com/cmantill/hpt/releases"
-
-
-[tool.hatch]
-version.path = "src/hbb/__init__.py"
-envs.default.dependencies = [
-  "pytest",
-  "pytest-cov",
-]
-
-[tool.hatch.metadata]
-allow-direct-references = true
+Homepage = "https://github.com/DAZSLE/hbb-run3/"
+"Bug Tracker" = "https://github.com/DAZSLE/hbb-run3/issues"
+Discussions = "https://github.com/DAZSLE/hbb-run3/discussions"
+Changelog = "https://github.com/DAZSLE/hbb-run3/releases"
 
 [tool.pytest.ini_options]
 minversion = "6.0"
@@ -79,7 +62,6 @@ testpaths = [
   "tests",
 ]
 
-
 [tool.coverage]
 run.source = ["hbb"]
 port.exclude_lines = [
@@ -91,18 +73,7 @@ port.exclude_lines = [
 [tool.mypy]
 files = ["src", "tests"]
 python_version = "3.8"
-warn_unused_configs = true
 strict = true
-show_error_codes = true
-enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
-warn_unreachable = true
-disallow_untyped_defs = false
-disallow_incomplete_defs = false
-
-[[tool.mypy.overrides]]
-module = "hbb.*"
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
 
 [tool.black]
 line-length = 100
