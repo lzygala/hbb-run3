@@ -14,7 +14,7 @@ from coffea.analysis_tools import PackedSelection, Weights
 
 from .. import utils
 from hbb import common_vars
-from .GenSelection import gen_selection_V, gen_selection_HHbbbb, gen_selection_Hbb
+from .GenSelection import gen_selection_V, gen_selection_Hbb
 from .objects import (
     get_ak8jets,
     good_ak8jets,
@@ -31,7 +31,6 @@ gen_selection_dict = {
     "Zto2Nu": gen_selection_V,
     "Wto2Q": gen_selection_V,
     "WtoLNu": gen_selection_V,
-    "HHto4B": gen_selection_HHbbbb,
     "Hto2B": gen_selection_Hbb,
 }
 
