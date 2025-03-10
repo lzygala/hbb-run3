@@ -12,8 +12,8 @@ First, create a virtual environment (micromamba is recommended):
 # Install: (the micromamba directory can end up taking O(1-10GB) so make sure the directory you're using allows that quota)
 "${SHELL}" <(curl -L micro.mamba.pm/install.sh)
 # You may need to restart your shell
-micromamba create -n hpt-env python=3.10 -c conda-forge
-micromamba activate hpt-env
+micromamba create -n hbb-env python=3.10 -c conda-forge
+micromamba activate hbb-env
 ```
 
 #### Installing package
@@ -30,6 +30,8 @@ pip install -e .
 To install the requirements
 ```bash
 pip install -r requirements.txt
+pip install xrootd
+python3 -m pip install setuptools==59.5.0
 ```
 
 ### Run locally
