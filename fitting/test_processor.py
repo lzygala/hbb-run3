@@ -1,20 +1,16 @@
 import logging
 import numpy as np
 import awkward as ak
+import dask
 import json
-import copy
 from collections import defaultdict
-from coffea import processor, hist
-import hist as hist2
+from coffea import processor
+from hist.dask import Hist
 from coffea.analysis_tools import Weights, PackedSelection
-from coffea.lumi_tools import LumiMask
-from boostedhiggs.btag import BTagCorrector
 from boostedhiggs.common import (
     getBosons,
     bosonFlavor,
-    pass_json_array,
 )
-
 from boostedhiggs.corrections import (
     lumiMasks
 )
@@ -46,60 +42,52 @@ class test_processor(processor.ProcessorABC):
         self._systematics = systematics
         self._ak4tagBranch = 'btagDeepFlavB'
 
-        with open('muon_triggers.json') as f:
+        with open('fitting/muon_triggers.json') as f:
             self._muontriggers = json.load(f)
 
-        with open('triggers.json') as f:
+        with open('fitting/triggers.json') as f:
             self._triggers = json.load(f)
 
         # https://twiki.cern.ch/twiki/bin/view/CMS/MissingETOptionalFiltersRun2                                                                    
-        with open('metfilters.json') as f:
+        with open('fitting/metfilters.json') as f:
             self._met_filters = json.load(f)
 
         optbins = np.r_[np.linspace(0, 0.15, 30, endpoint=False), np.linspace(0.15, 1, 86)]
         self.make_output = lambda: {
-            'sumw': processor.defaultdict_accumulator(float),
-            'cutflow': hist.Hist(
-                'Events',
-                hist.Cat('dataset', 'Dataset'),
-                hist.Cat('region', 'Region'),
-                hist.Bin('genflavor', 'Gen. jet flavor', [0, 1, 2, 3, 4]),
-                hist.Bin('cut', 'Cut index', 15, 0, 15),
-            ),
-            'btagWeight': hist2.Hist(
-                hist2.axis.Regular(50, 0, 3, name='val', label='BTag correction'),
-                hist2.storage.Weight(),
-            ),
-            'templates': hist.Hist(
-                'Events',
-                hist.Cat('dataset', 'Dataset'),
-                hist.Cat('region', 'Region'),
-                hist.Cat('systematic', 'Systematic'),
-                hist.Bin('genflavor', 'Gen. jet flavor', [0, 1, 3, 4]),
-                hist.Bin('pt1', r'Jet $p_{T}$ [GeV]', [400, 450, 500, 550, 600, 675, 800, 1200]),
-                hist.Bin('msd1', r'Jet $m_{sd}$', 23, 40, 201),
-                hist.Bin('ddb1', r'Jet ddb score', [0, 0.4, 0.5, 0.64, 1]),
-                hist.Bin('mjj', r'$m_{jj}$ [GeV]',[1000,2000,13000]),
-            ),
+            'sumw': defaultdict(float),
+            'cutflow': Hist.new
+                .StrCat([],growth=True, name="region", label='Region')
+                .StrCat([],growth=True, name='dataset', label='Dataset')
+                .Reg(15, 0, 15, name='cut', label='Cut index')
+                .Variable([0, 1, 2, 3, 4], name='genflavor', label='Gen. jet flavor')
+            ,
+            'btagWeight': Hist.new
+                .Reg(50, 0, 3, name='val', label='BTag correction')
+                .Weight()
+            ,
+            'templates': Hist.new
+                .StrCat([], growth=True, name='dataset', label='Dataset')
+                .StrCat([], growth=True, name='region', label='Region')
+                .StrCat([], growth=True, name='systematic', label='Systematic')
+                .Variable([0, 1, 3, 4], name='genflavor', label='Gen. jet flavor')
+                .Variable([400, 450, 500, 550, 600, 675, 800, 1200], name='pt1', label='Jet $p_{T}$ [GeV]')
+                .Reg(23, 40, 201, name='msd1', label="Jet $m_{sd}$")
+                .Variable([0, 0.4, 0.5, 0.64, 1], name='ddb1', label='Jet ddb score')
+                .Variable([1000,2000,13000], name='mjj', label='$m_{jj}$ [GeV]')
+                .Weight()
         }
 
     def process(self, events):
         isRealData = not hasattr(events, "genWeight")
         isQCDMC = 'QCD' in events.metadata['dataset']
 
-        if isRealData or isQCDMC:
-            # Nominal JEC are already applied in data
-            return self.process_shift(events, None)
-
-        if np.sum(ak.num(events.FatJet, axis=1)) < 1:
-            return self.process_shift(events, None)
-
         fatjets = events.FatJet
         jets = events.Jet
         met = events.MET
 
         shifts = [({"Jet": jets, "FatJet": fatjets, "MET": met}, None)]
-        return processor.accumulate(self.process_shift(update(events, collections), name) for collections, name in shifts)
+        #TODO return processor.accumulate(self.process_shift(update(events, collections), name) for collections, name in shifts)
+        return self.process_shift(events, None)
 
     def process_shift(self, events, shift_name):
 
@@ -107,52 +95,49 @@ class test_processor(processor.ProcessorABC):
         isRealData = not hasattr(events, "genWeight")
         isQCDMC = 'QCD' in dataset
         selection = PackedSelection()
-        weights = Weights(len(events), storeIndividual=True)
+        weights = Weights(None, storeIndividual=True)
         output = self.make_output()
         if shift_name is None and not isRealData:
             output['sumw'][dataset] = ak.sum(events.genWeight)
 
-        if len(events) == 0:
-            return output
-
+        total_entries = ak.num(events, axis=0)
         if isRealData:
-            trigger = np.zeros(len(events), dtype='bool')
+            trigger = ak.values_astype(ak.zeros_like(events.run), bool)
             for t in self._triggers[self._year]:
                 if t in events.HLT.fields:
-                    trigger |= np.array(events.HLT[t])
+                    trigger = trigger | events.HLT[t]
             selection.add('trigger', trigger)
             del trigger
         else:
-            selection.add('trigger', np.ones(len(events), dtype='bool'))
+            selection.add('trigger', ak.values_astype(ak.ones_like(events.run), bool))
 
         if isRealData:
             selection.add('lumimask', lumiMasks[self._year[:4]](events.run, events.luminosityBlock))
         else:
-            selection.add('lumimask', np.ones(len(events), dtype='bool'))
+            selection.add('lumimask', ak.values_astype(ak.ones_like(events.run), bool))
 
         if isRealData:
-            trigger = np.zeros(len(events), dtype='bool')
+            trigger = ak.values_astype(ak.zeros_like(events.run), bool)
             for t in self._muontriggers[self._year]:
                 if t in events.HLT.fields:
                     trigger = trigger | events.HLT[t]
             selection.add('muontrigger', trigger)
             del trigger
         else:
-            selection.add('muontrigger', np.ones(len(events), dtype='bool'))
+            selection.add('muontrigger', ak.values_astype(ak.ones_like(events.run), bool))
 
-        metfilter = np.ones(len(events), dtype='bool')
+        metfilter = ak.values_astype(ak.ones_like(events.run), bool)
         for flag in self._met_filters[self._year]['data' if isRealData else 'mc']:
-            metfilter &= np.array(events.Flag[flag])
+            metfilter = dask.array.bitwise_and(metfilter, events.Flag[flag])
         selection.add('metfilter', metfilter)
         del metfilter
 
         fatjets = events.FatJet
         fatjets['msdcorr'] = fatjets.msoftdrop
         fatjets['qcdrho'] = 2 * np.log(fatjets.msdcorr / fatjets.pt)
-        fatjets['n2ddt'] = fatjets.n2b1 - n2ddt_shift(fatjets, year=self._year)
 
-        selection.add('2FJ', (events.nFatJet == 2))
-        selection.add('not2FJ', (events.nFatJet != 2))
+        selection.add('2FJ', ak.num(fatjets, axis=1) == 2)
+        selection.add('not2FJ', ak.num(fatjets, axis=1) != 2)
 
         candidatejet = fatjets[
             (fatjets.pt > 200)
@@ -180,7 +165,6 @@ class test_processor(processor.ProcessorABC):
             & (abs(candidatejet.eta) < 2.5)
         )
         selection.add('jetid', candidatejet.isTight)
-        selection.add('n2ddt', (candidatejet.n2ddt < 0.))
         selection.add('ddbpass', (bvl >= 0.5))
 
         jets = events.Jet
@@ -188,15 +172,14 @@ class test_processor(processor.ProcessorABC):
             (jets.pt > 30.)
             & (abs(jets.eta) < 5.0)
             & jets.isTight
-            & (jets.puId > 0)
         ]
 
         # only consider first 4 jets to be consistent with old framework
         jets = jets[:, :4]
         dphi = abs(jets.delta_phi(candidatejet))
-        selection.add('antiak4btagMediumOppHem', ak.max(jets[dphi > np.pi / 2].btagDeepFlavB, axis=1, mask_identity=False) < self._btagSF._btagwp) 
+        selection.add('antiak4btagMediumOppHem', ak.max(jets[dphi > np.pi / 2].btagDeepFlavB, axis=1, mask_identity=False) < 0.3086) 
         ak4_away = jets[dphi > 0.8]
-        selection.add('ak4btagMedium08', ak.max(ak4_away.btagDeepFlavB, axis=1, mask_identity=False) > self._btagSF._btagwp) 
+        selection.add('ak4btagMedium08', ak.max(ak4_away.btagDeepFlavB, axis=1, mask_identity=False) > 0.3086) 
 
         met = events.MET
         selection.add('met', met.pt < 140.)
@@ -210,9 +193,6 @@ class test_processor(processor.ProcessorABC):
 
         deta = abs(ak.firsts(jet1).eta - ak.firsts(jet2).eta)
         mjj = ( ak.firsts(jet1) + ak.firsts(jet2) ).mass
-
-        qgl1 = ak.firsts(jet1.qgl)                                                                                            
-        qgl2 = ak.firsts(jet2.qgl)  
 
         isvbf = ((deta > 3.5) & (mjj > 1000))
         isvbf = ak.fill_none(isvbf,False)
@@ -233,7 +213,7 @@ class test_processor(processor.ProcessorABC):
         goodelectron = (
             (events.Electron.pt > 10)
             & (abs(events.Electron.eta) < 2.5)
-            & (events.Electron.cutBased >= events.Electron.LOOSE)
+            & (events.Electron.cutBased >= 2)
         )
         nelectrons = ak.sum(goodelectron, axis=1)
 
@@ -256,6 +236,7 @@ class test_processor(processor.ProcessorABC):
 
         if isRealData :
             genflavor = ak.zeros_like(candidatejet.pt)
+            weights.add('genweight', ak.ones_like(events.run))
         else:
             weights.add('genweight', events.genWeight)
 
@@ -274,19 +255,18 @@ class test_processor(processor.ProcessorABC):
         msd_matched = candidatejet.msdcorr * (genflavor > 0) + candidatejet.msdcorr * (genflavor == 0)
 
         regions = {
-            'signal-ggf': ['trigger','lumimask','metfilter','minjetkin','jetid','n2ddt','antiak4btagMediumOppHem','met','noleptons','notvbf','not2FJ'],
-            'signal-vh': ['trigger','lumimask','metfilter','minjetkin','jetid','n2ddt','antiak4btagMediumOppHem','met','noleptons','notvbf','2FJ'],
-            'signal-vbf': ['trigger','lumimask','metfilter','minjetkin','jetid','n2ddt','antiak4btagMediumOppHem','met','noleptons','isvbf'],
-            'muoncontrol': ['muontrigger','lumimask','metfilter','minjetkinmu', 'jetid', 'n2ddt', 'ak4btagMedium08', 'onemuon', 'muonkin', 'muonDphiAK8'],
-#            'noselection': [],
+            'signal-ggf': ['trigger','lumimask','metfilter','minjetkin','jetid','antiak4btagMediumOppHem','met','noleptons','notvbf','not2FJ'],
+            'signal-vh': ['trigger','lumimask','metfilter','minjetkin','jetid','antiak4btagMediumOppHem','met','noleptons','notvbf','2FJ'],
+            'signal-vbf': ['trigger','lumimask','metfilter','minjetkin','jetid','antiak4btagMediumOppHem','met','noleptons','isvbf'],
+            'muoncontrol': ['muontrigger','lumimask','metfilter','minjetkinmu', 'jetid',  'ak4btagMedium08', 'onemuon', 'muonkin', 'muonDphiAK8'],
         }
 
         def normalize(val, cut):
             if cut is None:
-                ar = ak.to_numpy(ak.fill_none(val, np.nan))
+                ar = ak.fill_none(val, np.nan)
                 return ar
             else:
-                ar = ak.to_numpy(ak.fill_none(val[cut], np.nan))
+                ar = ak.fill_none(val[cut], np.nan)
                 return ar
 
         import time

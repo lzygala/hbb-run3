@@ -1,0 +1,8 @@
+outfiles*
+fitting/plots*
+*.npy
+*.pyc
+fitting/output*
+fitting/2*
+dask-report*
+test.py

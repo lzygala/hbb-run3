@@ -19,6 +19,9 @@ import numpy as np
 import uproot
 from coffea.analysis_tools import Weights
 from coffea.lookup_tools.dense_lookup import dense_lookup
+
+from coffea.lookup_tools.lookup_base import lookup_base
+import importlib.resources
 from coffea.nanoevents.methods import vector
 from coffea.nanoevents.methods.base import NanoEventsArray
 from coffea.nanoevents.methods.nanoaod import FatJetArray, JetArray, MuonArray
@@ -145,13 +148,7 @@ class JECs:
         jec_cache = cachetools.Cache(np.inf)
 
         if isData:
-            if year == "2016APV":
-                corr_key = "2016preVFPmc"  
-            elif year == "2016":
-                corr_key = "2016postVFPmc"
-            elif year == "2017" or year == "2018":
-                
-            elif year == "2022":
+            if year == "2022":
                 corr_key = f"{year}_runCD"
             elif year == "2022EE" and "Run2022E" in dataset:
                 corr_key = f"{year}_runE"

@@ -50,9 +50,9 @@ def smass(sName):
     return _mass
 
 def one_bin(sName, passed, ptbin, cat, obs, syst, muon=False):
-    f = ROOT.TFile.Open('signalregion.root')
+    f = ROOT.TFile.Open(year+'/signalregion.root')
     if muon:
-        f = ROOT.TFile.Open('muonCR.root')
+        f = ROOT.TFile.Open(year+'/muonCR.root')
 
     name = cat+'fail_'
     if passed:
@@ -76,9 +76,9 @@ def get_template(sName, passed, ptbin, cat, obs, syst, muon=False):
     Read msd template from root file
     """
 
-    f = ROOT.TFile.Open('signalregion.root')
+    f = ROOT.TFile.Open(year+'/signalregion.root')
     if muon:
-        f = ROOT.TFile.Open('muonCR.root')
+        f = ROOT.TFile.Open(year+'/muonCR.root')
 
     name = cat+'fail_'
     if passed:
@@ -87,8 +87,11 @@ def get_template(sName, passed, ptbin, cat, obs, syst, muon=False):
         name += 'pt'+str(ptbin)+'_'
     elif cat == 'vbf_':
         name += 'mjj'+str(ptbin)+'_'
+    elif cat == 'vh_':
+        name += 'pt'+str(ptbin)+'_'
 
     name += sName+'_'+syst
+    print(name)
 
     h = f.Get(name)
 
@@ -216,7 +219,7 @@ def ggfvbf_rhalphabet(tmpdir,
     with open('sf.json') as f:
         SF = json.load(f)
 
-    with open('lumi.json') as f:
+    with open('../lumi.json') as f:
         lumi = json.load(f)
 
     # TT params
@@ -311,7 +314,7 @@ def ggfvbf_rhalphabet(tmpdir,
 
             # initial values                                                                 
             print('Initial fit values read from file initial_vals*')
-            with open('initial_vals_'+cat+'.json') as f:
+            with open(year+'/initial_vals_'+cat+'.json') as f:
                 initial_vals = np.array(json.load(f)['initial_vals'])
             print(initial_vals)
 
@@ -395,7 +398,7 @@ def ggfvbf_rhalphabet(tmpdir,
         tf_MCtempl_params_final = tf_MCtempl(ptscaled, rhoscaled)
 
         # initial values                                                                                                                                         
-        with open('initial_vals_data_'+cat+'.json') as f:
+        with open(year+'/initial_vals_data_'+cat+'.json') as f:
             initial_vals_data = np.array(json.load(f)['initial_vals'])
 
         print("TFres order " + str(initial_vals_data.shape[0]-1)+ " in pT, " + str(initial_vals_data.shape[1]-1) + " in rho")
@@ -414,7 +417,7 @@ def ggfvbf_rhalphabet(tmpdir,
     model = rl.Model('testModel_'+year)
 
     # exclude QCD from MC samps
-    samps = ['ggF','VBF','WH','ZH','ttH','Wjets','Zjets','Zjetsbb','EWKW','EWKZ','EWKZbb','ttbar','singlet','VV']
+    samps = ['ggF','VBF','WH','ZH','ttH','Wjets','Zjets','Zjetsbb','ttbar','singlet','VV'] #'EWKW','EWKZ','EWKZbb',
     sigs = ['ggF','VBF','WH','ZH']
 
     for cat in cats:
@@ -478,7 +481,7 @@ def ggfvbf_rhalphabet(tmpdir,
  
                 # END loop over MC samples 
 
-                data_obs = get_template('data', isPass, binindex+1, cat[:3]+'_', obs=msd, syst='nominal')
+                data_obs = get_template('JetData', isPass, binindex+1, cat[:3]+'_', obs=msd, syst='nominal')
 
                 if not isPass:
                     Nfail_data += data_obs[0].sum()
@@ -547,7 +550,7 @@ def ggfvbf_rhalphabet(tmpdir,
 
 if __name__ == '__main__':
 
-    year = "2023"
+    year = "2022"
 
     print("Running for "+year)
 
