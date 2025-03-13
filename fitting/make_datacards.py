@@ -91,7 +91,6 @@ def get_template(sName, passed, ptbin, cat, obs, syst, muon=False):
         name += 'pt'+str(ptbin)+'_'
 
     name += sName+'_'+syst
-    print(name)
 
     h = f.Get(name)
 
