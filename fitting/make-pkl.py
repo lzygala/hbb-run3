@@ -86,7 +86,7 @@ def main():
         if not name in scale_lumi.keys():
             continue
         print(name)
-        outsum['templates'].view(flow=True)[i] = outsum['templates'].view(flow=True)[i] * scale_lumi[name].compute()
+        outsum['templates'].view(flow=True)[i] *= scale_lumi[name]
 
     templates = group(outsum['templates'], 'dataset', 'process', pmap)
 
