@@ -3,7 +3,6 @@ import numpy as np
 import awkward as ak
 import dask
 import json
-from collections import defaultdict
 from coffea import processor
 from hist.dask import Hist
 from coffea.analysis_tools import Weights, PackedSelection
@@ -54,7 +53,7 @@ class test_processor(processor.ProcessorABC):
 
         optbins = np.r_[np.linspace(0, 0.15, 30, endpoint=False), np.linspace(0.15, 1, 86)]
         self.make_output = lambda: {
-            'sumw': defaultdict(float),
+            'sumw': {},
             'cutflow': Hist.new
                 .StrCat([],growth=True, name="region", label='Region')
                 .StrCat([],growth=True, name='dataset', label='Dataset')
