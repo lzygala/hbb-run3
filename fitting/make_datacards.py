@@ -461,19 +461,6 @@ def ggfvbf_rhalphabet(tmpdir,
                     else:
                         stype = rl.Sample.BACKGROUND
                     
-                    MORPHNOMINAL = True
-                    def smorph(templ):      
-                        if templ is None:
-                            return None                  
-                            
-                        if MORPHNOMINAL and sName not in ['QCD']:
-                            return MorphHistW2(templ).get(shift=SF[year]['shift_SF']/smass('Wjets') * smass(sName),
-                                                          smear=SF[year]['smear_SF']
-                                                      )
-                        else:
-                            return templ
-                    templ = smorph(templ)
-
                     sample = rl.TemplateSample(ch.name + '_' + sName, stype, templ)
 
                     ch.addSample(sample)
