@@ -2,42 +2,58 @@
 
 Starting with datasets from Jennet's repo, processors drawn heavily from Connor's boostedhiggs
 
-## Instructions to run hbbprocessor (skimmer)
+## Running Processor
+Set up environment by following instructions at https://github.com/CoffeaTeam/lpcjobqueue/
 
-### Install
 
-First, create a virtual environment (micromamba is recommended):
+Ensure you have a valid grid certificate.
+
+Enable singularity
 ```bash
-# Download the micromamba setup script (change if needed for your machine https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html)
-# Install: (the micromamba directory can end up taking O(1-10GB) so make sure the directory you're using allows that quota)
-"${SHELL}" <(curl -L micro.mamba.pm/install.sh)
-# You may need to restart your shell
-micromamba create -n hbb-env python=3.10 -c conda-forge
-micromamba activate hbb-env
+./shell coffeateam/coffea-dask-almalinux9:latest
 ```
 
-#### Installing package
-**Remember to install this in your mamba environment.**
-
+Run the processor for a certain year:
 ```bash
-# Clone the repository
-git clone <repo>
-cd hbb-run3/
-# Perform an editable installation
-pip install -e .
+python submit.py 2022
 ```
 
-To install the requirements
+You can edit submit.py to enable the skimming option, in the definition of the processor:
+
+```python
+p = categorizer(
+    year=year,
+    jet_arbitration='ddb',
+    ewkHcorr=False,
+    systematics=False,
+    skipJER=True, 
+    save_skim=True, 
+    skim_outpath="root://cmseos.fnal.gov//store/group/lpchbbrun3/tmp/"
+    )
+```
+
+The processor will output parquet files for each of the regions defined in categorizer.py, for example:
+
+```python
+regions = {
+    'signal-ggf': ['trigger','lumimask','metfilter','minjetkin','jetid','antiak4btagMediumOppHem','met','noleptons','notvbf','not2FJ'],
+    'signal-vh': ['trigger','lumimask','metfilter','minjetkin','jetid','antiak4btagMediumOppHem','met','noleptons','notvbf','2FJ'],
+    'signal-vbf': ['trigger','lumimask','metfilter','minjetkin','jetid','antiak4btagMediumOppHem','met','noleptons','isvbf'],
+    'muoncontrol':['muontrigger','lumimask','metfilter','minjetkinmu', 'jetid',  'ak4btagMedium08', 'onemuon', 'muonkin','muonDphiAK8']
+}
+```
+It is then straightforward to define regions and cuts in order to customize skims for individual studies.
+
+
+## Processor Hist Output
+Make pickle of hists:
 ```bash
-pip install -r requirements.txt
-pip install xrootd
-python3 -m pip install setuptools==59.5.0
+python make-pkl.py 2022
 ```
 
-### Run locally
-
-e.g. for a test
-```
-python -u -W ignore src/run.py --year 2023  --starti 0 --endi 1 --samples VJets --subsamples Zto2Q-2Jets_PTQQ-400to600_1J --processor hbbprocessor --nano-version v12v2_private
+Create signal region and control region hists:
+```bash
+python make-hists-sig.py 2022
+python make-hists-cr.py 2022
 ```
 
