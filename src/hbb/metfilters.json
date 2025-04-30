@@ -7,8 +7,7 @@
             "BadPFMuonFilter",
             "BadPFMuonDzFilter",
             "hfNoisyHitsFilter",
-            "eeBadScFilter",
-            "ecalBadCalibFilter"
+            "eeBadScFilter"
         ],
         "mc": [
             "goodVertices",
@@ -17,8 +16,7 @@
             "BadPFMuonFilter",
             "BadPFMuonDzFilter",
             "hfNoisyHitsFilter",
-            "eeBadScFilter",
-            "ecalBadCalibFilter"
+            "eeBadScFilter"
         ]
     },
     "2022EE": {
@@ -29,8 +27,7 @@
             "BadPFMuonFilter",
             "BadPFMuonDzFilter",
             "hfNoisyHitsFilter",
-            "eeBadScFilter",
-            "ecalBadCalibFilter"
+            "eeBadScFilter"
         ],
         "mc": [
             "goodVertices",
@@ -39,8 +36,7 @@
             "BadPFMuonFilter",
             "BadPFMuonDzFilter",
             "hfNoisyHitsFilter",
-            "eeBadScFilter",
-            "ecalBadCalibFilter"
+            "eeBadScFilter"
         ]
     },
     "2023": {
@@ -51,8 +47,7 @@
             "BadPFMuonFilter",
             "BadPFMuonDzFilter",
             "hfNoisyHitsFilter",
-            "eeBadScFilter",
-            "ecalBadCalibFilter"
+            "eeBadScFilter"
         ],
         "mc": [
             "goodVertices",
@@ -61,8 +56,7 @@
             "BadPFMuonFilter",
             "BadPFMuonDzFilter",
             "hfNoisyHitsFilter",
-            "eeBadScFilter",
-            "ecalBadCalibFilter"
+            "eeBadScFilter"
         ]
     },
     "2023BPix": {
@@ -73,8 +67,7 @@
             "BadPFMuonFilter",
             "BadPFMuonDzFilter",
             "hfNoisyHitsFilter",
-            "eeBadScFilter",
-            "ecalBadCalibFilter"
+            "eeBadScFilter"
         ],
         "mc": [
             "goodVertices",
@@ -83,8 +76,7 @@
             "BadPFMuonFilter",
             "BadPFMuonDzFilter",
             "hfNoisyHitsFilter",
-            "eeBadScFilter",
-            "ecalBadCalibFilter"
+            "eeBadScFilter"
         ]
     }
 }

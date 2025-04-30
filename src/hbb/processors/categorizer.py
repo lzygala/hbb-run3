@@ -14,6 +14,14 @@ from src.hbb.common import (
 from src.hbb.corrections import (
     lumiMasks
 )
+from .objects import (
+    good_ak8jets,
+    good_ak4jets,
+    set_ak4jets,
+    set_ak8jets,
+    good_muons,
+    good_electrons,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -55,6 +63,9 @@ class categorizer(processor.ProcessorABC):
         with open('src/hbb/metfilters.json') as f:
             self._met_filters = json.load(f)
 
+        with open('src/hbb/taggers.json') as f:
+            self._b_taggers = json.load(f)
+
         optbins = np.r_[np.linspace(0, 0.15, 30, endpoint=False), np.linspace(0.15, 1, 86)]
         self.make_output = lambda: {
             'sumw': {},
@@ -75,7 +86,7 @@ class categorizer(processor.ProcessorABC):
                 .Variable([0, 1, 3, 4], name='genflavor', label='Gen. jet flavor')
                 .Variable([400, 450, 500, 550, 600, 675, 800, 1200], name='pt1', label='Jet $p_{T}$ [GeV]')
                 .Reg(23, 40, 201, name='msd1', label="Jet $m_{sd}$")
-                .Variable([0, 0.4, 0.5, 0.64, 1], name='ddb1', label='Jet ddb score')
+                .Variable([0, 0.4, 0.5, 0.64, 1], name='bvl1', label='Jet bvl score')
                 .Variable([1000,2000,13000], name='mjj', label='$m_{jj}$ [GeV]')
                 .Weight(),
             'skim': {}
@@ -105,30 +116,25 @@ class categorizer(processor.ProcessorABC):
             output['sumw'][dataset] = ak.sum(events.genWeight)
 
         total_entries = ak.num(events, axis=0)
-        if isRealData:
-            trigger = ak.values_astype(ak.zeros_like(events.run), bool)
-            for t in self._triggers[self._year]:
-                if t in events.HLT.fields:
-                    trigger = trigger | events.HLT[t]
-            selection.add('trigger', trigger)
-            del trigger
-        else:
-            selection.add('trigger', ak.values_astype(ak.ones_like(events.run), bool))
+
+        trigger = ak.values_astype(ak.zeros_like(events.run), bool)
+        for t in self._triggers[self._year]:
+            if t in events.HLT.fields:
+                trigger = trigger | events.HLT[t]
+        selection.add('trigger', trigger)
+        del trigger
 
         if isRealData:
             selection.add('lumimask', lumiMasks[self._year[:4]](events.run, events.luminosityBlock))
         else:
             selection.add('lumimask', ak.values_astype(ak.ones_like(events.run), bool))
 
-        if isRealData:
-            trigger = ak.values_astype(ak.zeros_like(events.run), bool)
-            for t in self._muontriggers[self._year]:
-                if t in events.HLT.fields:
-                    trigger = trigger | events.HLT[t]
-            selection.add('muontrigger', trigger)
-            del trigger
-        else:
-            selection.add('muontrigger', ak.values_astype(ak.ones_like(events.run), bool))
+        trigger = ak.values_astype(ak.zeros_like(events.run), bool)
+        for t in self._muontriggers[self._year]:
+            if t in events.HLT.fields:
+                trigger = trigger | events.HLT[t]
+        selection.add('muontrigger', trigger)
+        del trigger
 
         metfilter = ak.values_astype(ak.ones_like(events.run), bool)
         for flag in self._met_filters[self._year]['data' if isRealData else 'mc']:
@@ -136,54 +142,34 @@ class categorizer(processor.ProcessorABC):
         selection.add('metfilter', metfilter)
         del metfilter
 
-        fatjets = events.FatJet
-        fatjets['msdcorr'] = fatjets.msoftdrop
-        fatjets['qcdrho'] = 2 * np.log(fatjets.msdcorr / fatjets.pt)
+        fatjets = set_ak8jets(events.FatJet)
+        goodfatjets = good_ak8jets(fatjets)
 
-        selection.add('2FJ', ak.num(fatjets, axis=1) == 2)
-        selection.add('not2FJ', ak.num(fatjets, axis=1) != 2)
+        selection.add('2FJ', ak.num(goodfatjets, axis=1) == 2)
+        selection.add('not2FJ', ak.num(goodfatjets, axis=1) != 2)
 
-        candidatejet = fatjets[
-            (fatjets.pt > 200)
-            & (abs(fatjets.eta) < 2.5)
-            & fatjets.isTight 
-        ]
-
-        candidatejet = candidatejet[:, :2]
-        candidatejet = ak.firsts(candidatejet[ak.argmax(candidatejet.particleNet_XbbVsQCD, axis=1, keepdims=True)])
-
-        bvl = candidatejet.particleNet_XbbVsQCD
+        candidatejet = ak.firsts(goodfatjets[ak.argmax(goodfatjets.particleNet_XbbVsQCD, axis=1, keepdims=True)])
 
         selection.add('minjetkin',
-            (candidatejet.pt >= 450)
+            (candidatejet.pt >= 300)
             & (candidatejet.pt < 1200)
             & (candidatejet.msdcorr >= 40.)
             & (candidatejet.msdcorr < 201.)
             & (abs(candidatejet.eta) < 2.5)
         )
-        selection.add('minjetkinmu',
-            (candidatejet.pt >= 400)
-            & (candidatejet.pt < 1200)
-            & (candidatejet.msdcorr >= 40.)
-            & (candidatejet.msdcorr < 201.)
-            & (abs(candidatejet.eta) < 2.5)
-        )
-        selection.add('jetid', candidatejet.isTight)
-        selection.add('ddbpass', (bvl >= 0.5))
 
-        jets = events.Jet
-        jets = jets[
-            (jets.pt > 30.)
-            & (abs(jets.eta) < 5.0)
-            & jets.isTight
-        ]
+        bvl = candidatejet.particleNet_XbbVsQCD
+        selection.add('bvlpass', (bvl >= 0.5))
+
+        good_jets = good_ak4jets(set_ak4jets(events.Jet))
 
         # only consider first 4 jets to be consistent with old framework
-        jets = jets[:, :4]
+        jets = good_jets[:, :4]
         dphi = abs(jets.delta_phi(candidatejet))
-        selection.add('antiak4btagMediumOppHem', ak.max(jets[dphi > np.pi / 2].btagDeepFlavB, axis=1, mask_identity=False) < 0.3086) 
+        btag_cut = self._b_taggers[self._year]["AK4"]["Jet_btagPNetB"]["M"]
+        selection.add('antiak4btagMediumOppHem', ak.max(jets[dphi > np.pi / 2].btagPNetB, axis=1, mask_identity=False) < btag_cut) 
         ak4_away = jets[dphi > 0.8]
-        selection.add('ak4btagMedium08', ak.max(ak4_away.btagDeepFlavB, axis=1, mask_identity=False) > 0.3086) 
+        selection.add('ak4btagMedium08', ak.max(ak4_away.btagPNetB, axis=1, mask_identity=False) > btag_cut) 
 
         met = events.MET
         selection.add('met', met.pt < 140.)
@@ -205,36 +191,15 @@ class categorizer(processor.ProcessorABC):
         isnotvbf = ak.fill_none(~isvbf,True)
         selection.add('notvbf', isnotvbf)
 
-        goodmuon = (
-            (events.Muon.pt > 10)
-            & (abs(events.Muon.eta) < 2.4)
-            & (events.Muon.pfRelIso04_all < 0.25)
-            & events.Muon.looseId
-        )
-        nmuons = ak.sum(goodmuon, axis=1)
-        leadingmuon = ak.firsts(events.Muon[goodmuon])
+        goodmuon = good_muons(events.Muon)
+        nmuons = ak.num(goodmuon, axis=1)
+        leadingmuon = ak.firsts(goodmuon)
 
-        goodelectron = (
-            (events.Electron.pt > 10)
-            & (abs(events.Electron.eta) < 2.5)
-            & (events.Electron.cutBased >= 2)
-        )
-        nelectrons = ak.sum(goodelectron, axis=1)
+        goodelectron = good_electrons(events.Electron)
+        nelectrons = ak.num(goodelectron, axis=1)
 
-        ntaus = ak.sum(
-            (
-                (events.Tau.pt > 20)
-                & (abs(events.Tau.eta) < 2.3)
-                & (events.Tau.rawIso < 5)
-                & (events.Tau.idDeepTau2017v2p1VSjet)
-                & ak.all(events.Tau.metric_table(events.Muon[goodmuon]) > 0.4, axis=2)
-                & ak.all(events.Tau.metric_table(events.Electron[goodelectron]) > 0.4, axis=2)
-            ),
-            axis=1,
-        )
-
-        selection.add('noleptons', (nmuons == 0) & (nelectrons == 0) & (ntaus == 0))
-        selection.add('onemuon', (nmuons == 1) & (nelectrons == 0) & (ntaus == 0))
+        selection.add('noleptons', (nmuons == 0) & (nelectrons == 0))
+        selection.add('onemuon', (nmuons == 1) & (nelectrons == 0))
         selection.add('muonkin', (leadingmuon.pt > 55.) & (abs(leadingmuon.eta) < 2.1))
         selection.add('muonDphiAK8', abs(leadingmuon.delta_phi(candidatejet)) > 2*np.pi/3)
 
@@ -259,10 +224,10 @@ class categorizer(processor.ProcessorABC):
         msd_matched = candidatejet.msdcorr * (genflavor > 0) + candidatejet.msdcorr * (genflavor == 0)
 
         regions = {
-            'signal-ggf': ['trigger','lumimask','metfilter','minjetkin','jetid','antiak4btagMediumOppHem','met','noleptons','notvbf','not2FJ'],
-            'signal-vh': ['trigger','lumimask','metfilter','minjetkin','jetid','antiak4btagMediumOppHem','met','noleptons','notvbf','2FJ'],
-            'signal-vbf': ['trigger','lumimask','metfilter','minjetkin','jetid','antiak4btagMediumOppHem','met','noleptons','isvbf'],
-            'muoncontrol': ['muontrigger','lumimask','metfilter','minjetkinmu', 'jetid',  'ak4btagMedium08', 'onemuon', 'muonkin', 'muonDphiAK8'],
+            'signal-ggf': ['trigger','lumimask','metfilter','minjetkin','antiak4btagMediumOppHem','met','noleptons','notvbf','not2FJ'],
+            'signal-vh': ['trigger','lumimask','metfilter','minjetkin','antiak4btagMediumOppHem','met','noleptons','notvbf','2FJ'],
+            'signal-vbf': ['trigger','lumimask','metfilter','minjetkin','antiak4btagMediumOppHem','met','noleptons','isvbf'],
+            'muoncontrol': ['muontrigger','lumimask','metfilter','minjetkin','ak4btagMedium08', 'onemuon', 'muonkin', 'muonDphiAK8'],
         }
 
         def normalize(val, cut):
@@ -300,7 +265,7 @@ class categorizer(processor.ProcessorABC):
                 genflavor=normalize(genflavor,cut),
                 pt1=normalize(candidatejet.pt, cut),
                 msd1=normalize(msd_matched, cut),
-                ddb1=normalize(bvl, cut),
+                bvl1=normalize(bvl, cut),
                 mjj=normalize(mjj, cut),
                 weight=weight,
             )
