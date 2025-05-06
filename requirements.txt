@@ -1,5 +1,7 @@
 awkward
+click
 coffea==2025.1.1
+dask-awkward==2025.5.0
 hist
 lz4
 numpy
@@ -9,4 +11,5 @@ scikit-learn
 scipy
 vector
 xgboost>=2.0.3
+XRootD
 zstandard

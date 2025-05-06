@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from pathlib import Path
 
 import awkward as ak
@@ -11,11 +12,12 @@ import numpy as np
 from coffea import processor
 from coffea.analysis_tools import PackedSelection, Weights
 from hist.dask import Hist
-from src.hbb.common import (
+
+from hbb.common import (
     bosonFlavor,
     getBosons,
 )
-from src.hbb.corrections import lumiMasks
+from hbb.corrections import lumiMasks
 
 from .objects import (
     good_ak4jets,
@@ -41,13 +43,11 @@ class categorizer(processor.ProcessorABC):
     def __init__(
         self,
         year="2017",
-        tagger="v2",
         systematics=False,
         save_skim=False,
         skim_outpath="",
     ):
         self._year = year
-        self._tagger = tagger
         self._systematics = systematics
         self._ak4tagBranch = "btagDeepFlavB"
         self._save_skim = save_skim
@@ -102,6 +102,7 @@ class categorizer(processor.ProcessorABC):
         selection = PackedSelection()
         weights = Weights(None, storeIndividual=True)
         output = self.make_output()
+
         if shift_name is None and not isRealData:
             output["sumw"][dataset] = ak.sum(events.genWeight)
 
@@ -126,7 +127,8 @@ class categorizer(processor.ProcessorABC):
 
         metfilter = ak.values_astype(ak.ones_like(events.run), bool)
         for flag in self._met_filters[self._year]["data" if isRealData else "mc"]:
-            metfilter = dask.array.bitwise_and(metfilter, events.Flag[flag])
+            if flag in events.Flag.fields:
+                metfilter = dask.array.bitwise_and(metfilter, events.Flag[flag])
         selection.add("metfilter", metfilter)
         del metfilter
 
@@ -201,6 +203,7 @@ class categorizer(processor.ProcessorABC):
 
         if isRealData:
             genflavor = ak.zeros_like(candidatejet.pt)
+            genBosonPt = ak.zeros_like(candidatejet.pt)
             weights.add("genweight", ak.ones_like(events.run))
         else:
             weights.add("genweight", events.genWeight)
@@ -212,10 +215,11 @@ class categorizer(processor.ProcessorABC):
             )
             selmatchedBoson = ak.mask(matchedBoson, match_mask)
             genflavor = bosonFlavor(selmatchedBoson)
-            # genBosonPt = ak.fill_none(ak.firsts(bosons.pt), 0)
+            genBosonPt = ak.fill_none(ak.firsts(bosons.pt), 0)
 
             logger.debug(f"Weight statistics: {weights.weightStatistics!r}")
 
+        # softdrop mass, 0 for genflavor == 0
         msd_matched = candidatejet.msdcorr * (genflavor > 0) + candidatejet.msdcorr * (
             genflavor == 0
         )
@@ -273,14 +277,26 @@ class categorizer(processor.ProcessorABC):
                 ar = ak.fill_none(val[cut], np.nan)
                 return ar
 
-        import time
-
         tic = time.time()
 
         if shift_name is None:
             systematics = [None] + list(weights.variations)
         else:
             systematics = [shift_name]
+
+        output_array = None
+        if self._save_skim:
+            # define "flat" output array
+            output_array = ak.zip(
+                {
+                    "GenBoson_pt": genBosonPt,
+                    "FatJet_pt": candidatejet.pt,
+                    "FatJet_ptmsdcorr": msd_matched,
+                    "FatJet_btag": bvl,
+                    "mjj": mjj,
+                },
+                depth_limit=1,
+            )
 
         def fill(region, systematic, wmod=None):
             selections = regions[region]
@@ -306,16 +322,23 @@ class categorizer(processor.ProcessorABC):
                 weight=weight,
             )
 
-        def skim(region):
+        def skim(region, output_array):
             selections = regions[region]
             cut = selection.all(*selections)
+
+            # to debug...
+            # print(output_array.compute())
+            # print(output_array[cut].compute())
+
             output["skim"][region] = dak.to_parquet(
-                events[cut], f"{self._skim_outpath}/{self._year}/{dataset}/{region}", compute=False
+                output_array[cut],
+                f"{self._skim_outpath}/{self._year}/{dataset}/{region}",
+                compute=False,
             )
 
         for region in regions:
             if self._save_skim:
-                skim(region)
+                skim(region, output_array)
             for systematic in systematics:
                 if isRealData and systematic is not None:
                     continue
@@ -328,4 +351,4 @@ class categorizer(processor.ProcessorABC):
         return output
 
     def postprocess(self, accumulator):
-        return accumulator
+        pass
