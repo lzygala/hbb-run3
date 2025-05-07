@@ -330,9 +330,15 @@ class categorizer(processor.ProcessorABC):
             # print(output_array.compute())
             # print(output_array[cut].compute())
 
+            # skim_path = Path(self._skim_outpath) / self._year / dataset / region
+            # skim_path.mkdir(parents=True, exist_ok=True)
+
+            skim_path = Path(region)
+            skim_path.mkdir(parents=True, exist_ok=True)
+            print("Saving skim to: ", skim_path)
             output["skim"][region] = dak.to_parquet(
                 output_array[cut],
-                f"{self._skim_outpath}/{self._year}/{dataset}/{region}",
+                str(skim_path),
                 compute=False,
             )
 
