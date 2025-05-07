@@ -73,22 +73,20 @@ def get_fileset(
 
     fileset = {}
 
-    print(full_fileset_nano.keys())
     for sample in samples:
-        print(full_fileset_nano[year].keys())
         sample_set = full_fileset_nano[year][sample]
-
         set_subsamples = list(sample_set.keys())
 
         # check if any subsamples for this sample have been specified
         get_subsamples = set(set_subsamples).intersection(subsamples)
 
+        # identify which subsamples are not in the full set
         if len(subsamples):
             for subs in subsamples:
                 if subs not in get_subsamples:
                     raise ValueError(f"Subsample {subs} not found for sample {sample}!")
 
-        # if so keep only that subset
+        # if the intersection is nonzero, keep only that subset
         if len(get_subsamples):
             sample_set = {subsample: sample_set[subsample] for subsample in get_subsamples}
 
