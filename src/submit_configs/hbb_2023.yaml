@@ -1,8 +1,8 @@
 {
   "2023": {
-    "JetMET": {
-      "JetMET_Run2023Cv1",
-    },
+    #"JetMET": {
+    #  "JetMET_Run2023Cv1",
+    #},
     "Hbb": {
       "GluGluHto2B_M-125",
     },
