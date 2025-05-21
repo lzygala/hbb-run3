@@ -1,122 +1,148 @@
 """
-Runs coffea processors on the LPC via either condor or dask.
-
-Author(s): Cristina Mantilla Suarez, Raghav Kansal
+Runs a coffea processors on a single file or a set of files (ONLY for testing)
 """
 
 from __future__ import annotations
 
 import argparse
-import os
 import pickle
+import shutil
 from pathlib import Path
 
-import numpy as np
+import dask
 import uproot
 import yaml
-from coffea import nanoevents, processor
+from coffea import nanoevents
+from coffea.dataset_tools import apply_to_fileset, max_chunks, preprocess
 
-from hbb import run_utils
-from hbb.common_vars import DATA_SAMPLES
+from hbb.run_utils import get_dataset_spec, get_fileset
 
-def run(p: processor, fileset: dict, skipbadfiles: bool, args):
+
+def run(year: str, fileset: dict, args: argparse.Namespace):
     """Run processor without fancy dask (outputs then need to be accumulated manually)"""
-    run_utils.add_mixins(nanoevents)  # update nanoevents schema
 
-    # outputs are saved here as pickles
-    outdir = "./outfiles"
-    os.system(f"mkdir -p {outdir}")
+    local_dir = Path().resolve()
 
-    save_parquet = True
-    save_root = False
-
-    if save_parquet or save_root:
-        # these processors store intermediate files in the "./outparquet" local directory
-        local_dir = Path().resolve()
+    if args.save_skim:
+        # intermediate files are stored in the "./outparquet" local directory
         local_parquet_dir = local_dir / "outparquet"
-
         if local_parquet_dir.is_dir():
-            os.system(f"rm -rf {local_parquet_dir}")
-
-        local_parquet_dir.mkdir()
+            shutil.rmtree(local_parquet_dir)
+        local_parquet_dir.mkdir(parents=True, exist_ok=True)
 
     uproot.open.defaults["xrootd_handler"] = uproot.source.xrootd.MultithreadedXRootDSource
 
-    if args.executor == "futures":
-        executor = processor.FuturesExecutor(status=True)
+    # if the fileset is empty, use dummy file to check if the processor works
+    if not fileset:
+        dataset = "GluGlu_Hto2B"
+        fname = "root://cmsxrootd.fnal.gov//store/mc/Run3Summer22NanoAODv12/GluGluHto2B_PT-200_M-125_TuneCP5_13p6TeV_powheg-minlo-pythia8/NANOAODSIM/130X_mcRun3_2022_realistic_v5-v2/50000/3a484476-0efd-469c-b376-c09628e3d380.root"
+        dict_process_files = {
+            dataset: {
+                "files": {fname: "Events"},
+                "metadata": {
+                    "dataset": dataset,
+                },
+            }
+        }
+        fileset = {fname: "Events"}
+        events = nanoevents.NanoEventsFactory.from_root(
+            fileset,
+            schemaclass=nanoevents.NanoAODSchema,
+            metadata={"dataset": "test"},
+        ).events()
+        print(events.metadata)
+        # Uncomment the following lines to run the processor directly on the events
+        # out = p.process(events)
+        # (computed,) = dask.compute(out)
     else:
-        executor = processor.IterativeExecutor(status=True)
+        dict_process_files = get_dataset_spec(fileset)
 
-    run = processor.Runner(
-        executor=executor,
-        savemetrics=True,
-        schema=nanoevents.NanoAODSchema,
-        chunksize=args.chunksize,
-        maxchunks=None if args.maxchunks == 0 else args.maxchunks,
-        skipbadfiles=skipbadfiles,
+    # Use preprocess from coffea
+    preprocessed_available, preprocessed_total = preprocess(
+        dict_process_files,
+        align_clusters=True,
+        skip_bad_files=True,
+        recalculate_steps=False,
+        files_per_batch=1,
+        file_exceptions=(OSError,),
+        step_size=20_000,
+        save_form=False,
+        uproot_options={
+            "xrootd_handler": uproot.source.xrootd.MultithreadedXRootDSource,
+            "allow_read_errors_with_report": True,
+        },
+        step_size_safety_factor=0.5,
+    )
+    print(
+        "Number of files preprocessed: ",
+        len(preprocessed_available),
+        " out of ",
+        len(preprocessed_total),
     )
 
-    # try file opening 3 times if it fails
-    for i in range(3):
-        try:
-            out, metrics = run(fileset, "Events", processor_instance=p)
-            break
-        except FileNotFoundError as e:
-            import time
+    # TODO: customize processor
+    from hbb.processors import categorizer
 
-            print("Error!")
-            print(e)
-            if i < 2:
-                print("Retrying in 1 minute")
-                time.sleep(60)
-            else:
-                raise e
+    p = categorizer(
+        year=year,
+        save_skim=args.save_skim,
+        skim_outpath="outparquet",
+    )
 
-    with Path(f"{outdir}/{args.starti}-{args.endi}.pkl").open("wb") as f:
-        pickle.dump(out, f)
+    full_tg, rep = apply_to_fileset(
+        data_manipulation=p,
+        fileset=max_chunks(preprocessed_available, 300),
+        schemaclass=nanoevents.NanoAODSchema,
+        uproot_options={
+            "allow_read_errors_with_report": (OSError, KeyError),
+            "xrootd_handler": uproot.source.xrootd.MultithreadedXRootDSource,
+            "timeout": 1800,
+        },
+    )
+    output, _ = dask.compute(full_tg, rep)
+    print("output ", output)
 
-    # need to combine all the files from these processors before transferring to EOS
+    # save the output to a pickle file
+    with Path(f"{local_dir}/{args.starti}-{args.endi}.pkl").open("wb") as f:
+        pickle.dump(output, f)
+    print("Saved output to ", f"{local_dir}/{args.starti}-{args.endi}.pkl")
+
+    # need to combine all the files from these processor
     # otherwise it will complain about too many small files
-    if save_parquet or save_root:
+    if args.save_skim:
         import pandas as pd
         import pyarrow as pa
         import pyarrow.parquet as pq
 
-        pddf = pd.read_parquet(local_parquet_dir)
+        # only find subfolders with parquet files
+        parquet_folders = set()
+        for parquet_file in local_parquet_dir.rglob("*.parquet"):
+            parquet_folders.add(str(parquet_file.parent.resolve()))
+        # print("Subfolders: ", parquet_folders)
 
-        if save_parquet:
+        for folder in parquet_folders:
+            full_path = Path(folder)
+            region_name = full_path.name
+            pddf = pd.read_parquet(folder)
+
             # need to write with pyarrow as pd.to_parquet doesn't support different types in
             # multi-index column names
             table = pa.Table.from_pandas(pddf)
-            pq.write_table(table, f"{local_dir}/{args.starti}-{args.endi}.parquet")
+            output_file = f"{local_dir}/{region_name}_{args.starti}-{args.endi}.parquet"
+            pq.write_table(table, output_file)
+            print("Saved parquet file to ", output_file)
 
-        if save_root and args.save_root:
-            import awkward as ak
-
-            with uproot.recreate(
-                f"{local_dir}/nano_skim_{args.starti}-{args.endi}.root", compression=uproot.LZ4(4)
-            ) as rfile:
-                rfile["Events"] = ak.Array(
-                    # take only top-level column names in multiindex df
-                    run_utils.flatten_dict(
-                        {key: np.squeeze(pddf[key].values) for key in pddf.columns.levels[0]}
-                    )
-                )
+        # remove subfolder
+        print("Removing temporary folder: ", local_parquet_dir)
+        shutil.rmtree(local_parquet_dir)
 
 
 def main(args):
-    p = run_utils.get_processor(
-        args.processor,
-        args.save_array,
-        args.nano_version,
-    )
-    print(p)
 
-    skipbadfiles = True
+    print(args)
 
     if len(args.files):
         fileset = {f"{args.year}_{args.files_name}": args.files}
-        skipbadfiles = False  # not added functionality for args.files yet
     else:
         if args.yaml:
             with Path(args.yaml).open() as file:
@@ -134,8 +160,7 @@ def main(args):
             samples = args.samples
             subsamples = args.subsamples
 
-        fileset = run_utils.get_fileset(
-            args.processor,
+        fileset = get_fileset(
             args.year,
             args.nano_version,
             samples,
@@ -144,29 +169,42 @@ def main(args):
             args.endi,
         )
 
-        # don't skip "bad" files for data - we want it throw an error in that case
-        for key in fileset:
-            if key in DATA_SAMPLES:
-                skipbadfiles = False
-
     print(f"Running on fileset {fileset}")
-    if args.executor == "dask":
-        run_dask(p, fileset, args)
-    else:
-        run(p, fileset, skipbadfiles, args)
+    run(args.year, fileset, args)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    run_utils.parse_common_args(parser)
+    parser.add_argument(
+        "--year",
+        help="year",
+        type=str,
+        default="2023",
+        choices=["2023"],
+    )
     parser.add_argument("--starti", default=0, help="start index of files", type=int)
     parser.add_argument("--endi", default=-1, help="end index of files", type=int)
     parser.add_argument(
-        "--executor",
+        "--samples",
+        default=[],
+        help="which samples to run",  # , default will be all samples",
+        nargs="*",
+    )
+    parser.add_argument(
+        "--subsamples",
+        default=[],
+        help="which subsamples, by default will be all in the specified sample(s)",
+        nargs="*",
+    )
+    parser.add_argument(
+        "--nano-version",
         type=str,
-        default="iterative",
-        choices=["futures", "iterative", "dask"],
-        help="type of processor executor",
+        default="v12v2_private",
+        choices=[
+            "v12",
+            "v12v2_private",
+        ],
+        help="NanoAOD version",
     )
     parser.add_argument(
         "--files", default=[], help="set of files to run on instead of samples", nargs="*"
@@ -177,7 +215,15 @@ if __name__ == "__main__":
         default="files",
         help="sample name of files being run on, if --files option used",
     )
-    parser.add_argument("--yaml", default=None, help="yaml file", type=str)
+    parser.add_argument(
+        "--yaml", default=None, help="yaml file with samples and subsamples", type=str
+    )
+    parser.add_argument(
+        "--save-skim",
+        action="store_true",
+        help="save skimmed (flat ntuple) files",
+        default=False,
+    )
 
     args = parser.parse_args()
 
