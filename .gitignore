@@ -1,5 +1,10 @@
 *.DS_Store
 *.parquet
-outfiles/
 *__pycache__/
 dask-report*
+.bashrc
+.cmslpc-local-conf
+.env/
+.local/
+bootstrap.sh
+shell

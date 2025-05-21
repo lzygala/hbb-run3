@@ -31,7 +31,9 @@ if __name__ == "__main__":
     print("local_dir: ", local_dir)
     yaml_path = local_dir / f"src/submit_configs/hbb_{year}.yaml"
 
-    skim_outpath = "root://cmseos.fnal.gov//store/user/cmantill/tmp/"
+    skim_dir = "/store/group/lpcdihiggsboost/cmantill/"
+
+    skim_outpath = f"root://cmseos.fnal.gov/{skim_dir}"
 
     print("Running on year: ", year)
     print("Using yaml file: ", yaml_path)
@@ -64,7 +66,7 @@ if __name__ == "__main__":
         ship_env=True,
         memory="10GB",
         image="coffeateam/coffea-dask-almalinux9:latest",
-        # log_directory="/uscmst1b_scratch/lpc1/3DayLifetime/workerlogs/",
+        log_directory=f"/uscmst1b_scratch/lpc1/3DayLifetime/{os.environ['USER']}",
     )
     cluster.adapt(minimum=1, maximum=250)
 
@@ -84,11 +86,6 @@ if __name__ == "__main__":
                 Path(outpath).mkdir(parents=True, exist_ok=True)
                 outfile = outpath + subsample + "_dask.coffea"
                 print("Will save to: ", outfile)
-
-                local_parquet_dir = local_dir / "outparquet"
-                if local_parquet_dir.is_dir():
-                    os.system(f"rm -rf {local_parquet_dir}")
-                local_parquet_dir.mkdir()
 
                 if Path(outfile).is_file():
                     print("File " + outfile + " already exists. Skipping.")
@@ -128,7 +125,7 @@ if __name__ == "__main__":
                 p = categorizer(
                     year=year,
                     save_skim=True,
-                    skim_outpath="root://cmseos.fnal.gov//store/user/cmantill/tmp/",
+                    skim_outpath=skim_outpath,
                 )
 
                 full_tg, rep = apply_to_fileset(
@@ -149,25 +146,5 @@ if __name__ == "__main__":
                     pickle.dump(output, f)
                 print("Saved output to ", outfile)
                 print(datetime.now())
-
-                # need to combine all the files from these processors before transferring to EOS
-
-                # # only find subfolders with parquet files
-                # parquet_folders = set()
-                # for parquet_file in local_parquet_dir.rglob("*.parquet"):
-                #     parquet_folders.add(str(parquet_file.parent.resolve()))
-                # # print("Subfolders: ", parquet_folders)
-
-                # for folder in parquet_folders:
-                #     full_path = Path(folder)
-                #     region_name = full_path.name
-                #     pddf = pd.read_parquet(folder)
-
-                #     # need to write with pyarrow as pd.to_parquet doesn't support different types in
-                #     # multi-index column names
-                #     table = pa.Table.from_pandas(pddf)
-                #     output_file = f"{skim_outpath}/{region_name}.parquet"
-                #     pq.write_table(table, output_file)
-                #     print("Saved parquet file to ", output_file)
 
     cluster.close()

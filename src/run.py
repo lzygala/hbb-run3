@@ -5,8 +5,8 @@ Runs a coffea processors on a single file or a set of files (ONLY for testing)
 from __future__ import annotations
 
 import argparse
-import os
 import pickle
+import shutil
 from pathlib import Path
 
 import dask
@@ -21,16 +21,14 @@ from hbb.run_utils import get_dataset_spec, get_fileset
 def run(year: str, fileset: dict, args: argparse.Namespace):
     """Run processor without fancy dask (outputs then need to be accumulated manually)"""
 
+    local_dir = Path().resolve()
+
     if args.save_skim:
-        # outputs are saved here as pickles
-        outdir = "./outfiles"
-        os.system(f"mkdir -p {outdir}")
         # intermediate files are stored in the "./outparquet" local directory
-        local_dir = Path().resolve()
         local_parquet_dir = local_dir / "outparquet"
         if local_parquet_dir.is_dir():
-            os.system(f"rm -rf {local_parquet_dir}")
-        local_parquet_dir.mkdir()
+            shutil.rmtree(local_parquet_dir)
+        local_parquet_dir.mkdir(parents=True, exist_ok=True)
 
     uproot.open.defaults["xrootd_handler"] = uproot.source.xrootd.MultithreadedXRootDSource
 
@@ -109,7 +107,7 @@ def run(year: str, fileset: dict, args: argparse.Namespace):
         pickle.dump(output, f)
     print("Saved output to ", f"{local_dir}/{args.starti}-{args.endi}.pkl")
 
-    # need to combine all the files from these processors before transferring to EOS
+    # need to combine all the files from these processor
     # otherwise it will complain about too many small files
     if args.save_skim:
         import pandas as pd
@@ -133,6 +131,10 @@ def run(year: str, fileset: dict, args: argparse.Namespace):
             output_file = f"{local_dir}/{region_name}_{args.starti}-{args.endi}.parquet"
             pq.write_table(table, output_file)
             print("Saved parquet file to ", output_file)
+
+        # remove subfolder
+        print("Removing temporary folder: ", local_parquet_dir)
+        shutil.rmtree(local_parquet_dir)
 
 
 def main(args):

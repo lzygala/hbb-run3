@@ -25,6 +25,8 @@ qcd_ht_bins = [
     "2000",
 ]
 
+
+# OFFICIAL NANOAODv12
 def get_v12():
     return {
         "2022EE": {
@@ -59,7 +61,7 @@ def get_v12():
                     "/ParkingDoubleMuonLowMass4/Run2022G-22Sep2023-v2/NANOAOD",
                     "/ParkingDoubleMuonLowMass5/Run2022G-22Sep2023-v1/NANOAOD",
                     "/ParkingDoubleMuonLowMass6/Run2022G-22Sep2023-v1/NANOAOD",
-                    "/ParkingDoubleMuonLowMass7/Run2022G-22Sep2023-v1/NANOAOD"
+                    "/ParkingDoubleMuonLowMass7/Run2022G-22Sep2023-v1/NANOAOD",
                 ],
             },
             "HH": {
@@ -299,7 +301,7 @@ def get_v12():
     }
 
 
-def get_v12v2_private():   ## PRIVATE
+def get_v12v2_private():  ## PRIVATE
     return {
         "2023": {
             "HH": {
@@ -411,6 +413,7 @@ def get_v12v2_private():   ## PRIVATE
         },
     }
 
+
 def eos_rec_search(startdir, suffix, dirs):
     print(f"EOS Recursive search in {startdir}.")
     eosbase = "root://cmseos.fnal.gov/"
@@ -512,7 +515,7 @@ def get_files(dataset, version):
         return files_valid
 
 
-#for version in ["v12"]:
+# for version in ["v12"]:
 for version in ["v12v2_private"]:
     datasets = globals()[f"get_{version}"]()
     index = datasets.copy()
@@ -528,8 +531,6 @@ for version in ["v12v2_private"]:
                     index[year][sample][sname] = files
                 else:
                     index[year][sample][sname] = get_files(dataset, version)
-
-
 
     with Path(f"nanoindex_{version}.json").open("w") as f:
         json.dump(index, f, indent=4)
