@@ -38,8 +38,7 @@ def get_rucio_client():
         nativeClient = Client(
             rucio_host="https://cms-rucio.cern.ch",
             auth_host="https://cms-rucio-auth.cern.ch",
-            account='ghamilto',
-            #account=getpass.getuser(),
+            account=getpass.getuser(),
             creds={"client_cert": get_proxy_path(), "client_key": get_proxy_path()},
             auth_type="x509",
         )
@@ -104,6 +103,7 @@ def get_dataset_files(
     blacklist_sites=None,
     regex_sites=None,
     output="first",
+    request_replica=True,
 ):
     """
     This function queries the Rucio server to get information about the location
@@ -143,7 +143,14 @@ def get_dataset_files(
                     found = True
 
             if not found:
-                print(f"No SITE available in the whitelist for file {filedata['name']} - skipping dataset...")
+                print(
+                    f"No SITE available in the whitelist for file {filedata['name']} - skipping dataset..."
+                )
+                if request_replica:
+                    print("Will request replica")
+                    os.system(
+                        f"rucio add-rule 'cms:{dataset}' 1 T1_US_FNAL_Disk --activity 'User AutoApprove' --lifetime 14000000 --ask-approval --comment ''"
+                    )
                 break
         else:
             possible_sites = list(rses.keys())

@@ -8,3 +8,4 @@ dask-report*
 .local/
 bootstrap.sh
 shell
+.sites_map.json
