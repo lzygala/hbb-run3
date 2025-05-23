@@ -17,7 +17,6 @@ from hbb import run_utils
 
 t2_redirectors = {
     "lpc": "root://cmseos.fnal.gov//",
-    "ucsd": "root://redirector.t2.ucsd.edu:1095//",
 }
 
 
@@ -41,8 +40,6 @@ def main(args):
         except:
             print("No valid proxy. Exiting.")
             exit(1)
-    elif args.site == "ucsd":
-        proxy = "/home/users/rkansal/x509up_u31735"
     else:
         raise ValueError(f"Invalid site {args.site}")
 
@@ -58,18 +55,17 @@ def main(args):
     tag = f"{args.tag}_{args.nano_version}"
 
     # make eos dir
-    pdir = Path(f"store/user/{username}/bbbb/{args.processor}/")
+    pdir = Path(f"store/user/lpchbbrun3/{username}/")
     outdir = pdir / tag
 
     # make local directory
-    local_dir = Path(f"condor/{args.processor}/{tag}")
+    local_dir = Path(f"condor/{tag}")
     logdir = local_dir / "logs"
     logdir.mkdir(parents=True, exist_ok=True)
     print("Condor work dir: ", local_dir)
 
     print(args.subsamples)
     fileset = run_utils.get_fileset(
-        args.processor,
         args.year,
         args.nano_version,
         args.samples,
@@ -93,8 +89,6 @@ def main(args):
             njobs = ceil(tot_files / args.files_per_job)
 
             for j in range(njobs):
-                if args.test and j == 2:
-                    break
 
                 prefix = f"{args.year}_{subsample}"
                 localcondor = f"{local_dir}/{prefix}_{j}.jdl"
@@ -104,16 +98,12 @@ def main(args):
                 localsh = f"{local_dir}/{prefix}_{j}.sh"
                 sh_args = {
                     "branch": args.git_branch,
-                    "gituser": args.git_user,
                     "script": args.script,
                     "year": args.year,
                     "starti": j * args.files_per_job,
                     "endi": (j + 1) * args.files_per_job,
                     "sample": sample,
                     "subsample": subsample,
-                    "processor": args.processor,
-                    "maxchunks": args.maxchunks,
-                    "chunksize": args.chunksize,
                     "t2_prefixes": " ".join(t2_prefixes),
                     "outdir": sample_dir,
                     "jobnum": j,
@@ -126,7 +116,7 @@ def main(args):
                     Path(f"{localcondor}.log").unlink()
 
                 if args.submit:
-                    os.system("condor_submit %s" % localcondor)
+                    os.system(f"condor_submit {localcondor}")
                 else:
                     print("To submit ", localcondor)
                 nsubmit = nsubmit + 1
@@ -135,6 +125,13 @@ def main(args):
 
 
 def parse_args(parser):
+    parser.add_argument(
+        "--year",
+        help="year",
+        type=str,
+        default="2023",
+        choices=["2022", "2022EE", "2023", "2023BPix"],
+    )
     parser.add_argument("--script", default="src/run.py", help="script to run", type=str)
     parser.add_argument("--tag", default="Test", help="process tag", type=str)
     parser.add_argument(
@@ -145,7 +142,7 @@ def parse_args(parser):
         default="lpc",
         help="computing cluster we're running this on",
         type=str,
-        choices=["lpc", "ucsd"],
+        choices=["lpc"],
     )
     parser.add_argument(
         "--save-sites",
@@ -153,21 +150,35 @@ def parse_args(parser):
         help="tier 2s in which we want to save the files",
         type=str,
         nargs="+",
-        choices=["lpc", "ucsd"],
-    )
-    run_utils.add_bool_arg(
-        parser,
-        "test",
-        default=False,
-        help="test run or not - test run means only 2 jobs per sample will be created",
+        choices=["lpc"],
     )
     parser.add_argument("--files-per-job", default=20, help="# files per condor job", type=int)
     run_utils.add_bool_arg(
         parser, "submit", default=False, help="submit files as well as create them"
     )
     parser.add_argument("--git-branch", required=True, help="git branch to use", type=str)
-    parser.add_argument("--git-user", default="cmantill", help="which user's repo to use", type=str)
-    #parser.add_argument("--git-user", default="LPC-HH", help="which user's repo to use", type=str)
+    parser.add_argument(
+        "--samples",
+        default=[],
+        help="which samples to run",  # , default will be all samples",
+        nargs="*",
+    )
+    parser.add_argument(
+        "--subsamples",
+        default=[],
+        help="which subsamples, by default will be all in the specified sample(s)",
+        nargs="*",
+    )
+    parser.add_argument(
+        "--nano-version",
+        type=str,
+        default="v12",
+        choices=[
+            "v12",
+            "v12v2_private",
+        ],
+        help="NanoAOD version",
+    )
     run_utils.add_bool_arg(
         parser,
         "allow-diff-local-repo",
@@ -179,7 +190,6 @@ def parse_args(parser):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    run_utils.parse_common_args(parser)
     parse_args(parser)
     args = parser.parse_args()
     main(args)

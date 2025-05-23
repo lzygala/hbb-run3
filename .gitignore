@@ -9,3 +9,5 @@ dask-report*
 bootstrap.sh
 shell
 .sites_map.json
+outfiles/
+*.jdl

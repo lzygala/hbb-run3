@@ -88,7 +88,6 @@ source ~/.bashrc
 micromamba activate hbb
 ```
 
-
 ```bash
 # to run on a single file (starting index at 0, ending index at 1) for one subsample
 python src/run.py --sample Hbb --subsample GluGluHto2B_PT-200_M-125 --starti 0 --endi 1
@@ -99,20 +98,19 @@ python src/run.py --sample Hbb --subsample GluGluHto2B_PT-200_M-125 --starti 0 -
 python src/run.py --sample Hbb --subsample GluGluHto2B_PT-200_M-125  VBFHto2B_M-125 --starti 0 --endi 1
 ```
 
-## Submit jobs
+## Submit jobs with DASK
 
 **In the bash shell:**
 
 Run the processor for a certain year:
 ```bash
-# this will submit samples in yaml file: src/submit_configs/hbb_2023.yaml
-python submit.py 2023
+# this will submit samples in yaml file: src/submit_configs/hbb.yaml
+python3 submit.py --year 2023 --tag 25May22
 ```
 
-You can edit submit.py to enable the skimming option, in the definition of the processor:
-
-```python
-p = categorizer(year=year, ...)
+To enable the skimming option, add:
+```bash
+--save-skim
 ```
 
 The processor will output parquet files for each of the regions defined in categorizer.py, for example:
@@ -128,6 +126,7 @@ regions = {
 It is then straightforward to define regions and cuts in order to customize skims for individual studies.
 
 
+
 ### Debugging
 
 - Look for error:
@@ -136,5 +135,3 @@ proxy has expired
 ```
 if your proxy is not valid in the dask submission.
 Note: Start your proxy outside your `./shell` singularity environment.
-
--

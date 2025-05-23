@@ -100,7 +100,7 @@ def run(year: str, fileset: dict, args: argparse.Namespace):
         },
     )
     output, _ = dask.compute(full_tg, rep)
-    print("output ", output)
+    # print("output ", output)
 
     # save the output to a pickle file
     with Path(f"{local_dir}/{args.starti}-{args.endi}.pkl").open("wb") as f:
@@ -180,7 +180,7 @@ if __name__ == "__main__":
         help="year",
         type=str,
         default="2023",
-        choices=["2023"],
+        choices=["2022", "2022EE", "2023", "2023BPix"],
     )
     parser.add_argument("--starti", default=0, help="start index of files", type=int)
     parser.add_argument("--endi", default=-1, help="end index of files", type=int)
@@ -199,7 +199,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--nano-version",
         type=str,
-        default="v12v2_private",
+        default="v12",
         choices=[
             "v12",
             "v12v2_private",
