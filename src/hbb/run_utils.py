@@ -7,6 +7,39 @@ import sys
 from pathlib import Path
 
 
+def parse_common_args(parser):
+    parser.add_argument(
+        "--year",
+        help="year",
+        type=str,
+        required=True,
+        choices=["2022", "2022EE", "2023", "2023BPix"],
+    )
+    parser.add_argument(
+        "--samples",
+        default=[],
+        help="which samples to run",  # , default will be all samples",
+        nargs="*",
+    )
+    parser.add_argument(
+        "--subsamples",
+        default=[],
+        help="which subsamples, by default will be all in the specified sample(s)",
+        nargs="*",
+    )
+    parser.add_argument("--tag", default="Test", help="process tag", type=str)
+    parser.add_argument(
+        "--nano-version",
+        type=str,
+        default="v12",
+        choices=[
+            "v12",
+            "v12v2_private",
+        ],
+        help="NanoAOD version",
+    )
+
+
 def add_bool_arg(parser, name, help, default=False, no_name=None):
     """Add a boolean command line argument for argparse"""
     varname = "_".join(name.split("-"))  # change hyphens to underscores
@@ -24,7 +57,9 @@ def add_bool_arg(parser, name, help, default=False, no_name=None):
 def check_branch(git_branch: str, allow_diff_local_repo: bool = False):
     """Check that specified git branch exists in the repo, and local repo is up-to-date"""
     assert not bool(
-        os.system(f'git ls-remote --exit-code --heads "git@github.com:cmantill/hpt" "{git_branch}"')
+        os.system(
+            f'git ls-remote --exit-code --heads "https://github.com/DAZSLE/hbb-run3" "{git_branch}"'
+        )
     ), f"Branch {git_branch} does not exist"
 
     print(f"Using branch {git_branch}")

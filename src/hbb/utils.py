@@ -6,31 +6,14 @@ Author(s): Raghav Kansal
 
 from __future__ import annotations
 
-from __future__ import annotations
-
-import contextlib
 import pickle
-import time
 import warnings
-from copy import deepcopy
-from dataclasses import dataclass, field
-from os import listdir
 from pathlib import Path
-
-import hist
-import numpy as np
-import pandas as pd
-import vector
-from hist import Hist
 
 import awkward as ak
 import numpy as np
+import pandas as pd
 from coffea.analysis_tools import PackedSelection
-
-from .common_vars import (
-    LUMI,
-    data_key,
-)
 
 P4 = {
     "eta": "Eta",
@@ -38,25 +21,6 @@ P4 = {
     "mass": "Mass",
     "pt": "Pt",
 }
-
-
-PAD_VAL = -99999
-
-
-def pad_val(
-    arr: ak.Array,
-    target: int,
-    value: float = PAD_VAL,
-    axis: int = 0,
-    to_numpy: bool = True,
-    clip: bool = True,
-):
-    """
-    pads awkward array up to ``target`` index along axis ``axis`` with value ``value``,
-    optionally converts to numpy array
-    """
-    ret = ak.fill_none(ak.pad_none(arr, target, axis=axis, clip=clip), value, axis=axis)
-    return ret.to_numpy() if to_numpy else ret
 
 
 def add_selection(
@@ -79,9 +43,6 @@ def add_selection(
         else np.sum(genWeights[selection.all(*selection.names)])
     )
 
-import warnings
-import pandas as pd
-from pathlib import Path
 
 def load_samples(
     data_dir: Path,
@@ -90,7 +51,6 @@ def load_samples(
     year: str,
     filters: list = None,
     columns: list = None,
-    load_weight_noxsec: bool = True,
 ) -> dict[str, pd.DataFrame]:
     """
     Loads events with an optional filter.
@@ -107,7 +67,9 @@ def load_samples(
         Dict[str, pd.DataFrame]: Dictionary of events dataframe for each sample.
     """
     data_dir = Path(data_dir) / year
-    full_samples_list = listdir(data_dir)  # get all directories in data_dir
+    full_samples_list = [
+        p.name for p in data_dir.iterdir() if p.is_dir()
+    ]  # get all directories in data_dir
     events_dict = {}
 
     for sample_name in samples:
@@ -127,7 +89,6 @@ def load_samples(
                 warnings.warn(f"No parquet directory for {sample}!", stacklevel=1)
                 continue
 
-
             print(f"Loading {sample}")
             events = pd.read_parquet(parquet_path, filters=filters, columns=columns)
 
@@ -141,7 +102,7 @@ def load_samples(
                 n_events = get_nevents(pickles_path, year, sample)
                 events["weight_nonorm"] = events["weight"]
                 events["finalWeight"] = events["weight"] / n_events
-                #print(events["finalWeight"])
+                # print(events["finalWeight"])
             else:
                 events["finalWeight"] = events["weight"]
 
@@ -157,8 +118,6 @@ def load_samples(
     return events_dict
 
 
-
-
 def format_columns(columns: list):
     """
     Reformat input of (`column name`, `num columns`) into (`column name`, `idx`) format for
@@ -170,10 +129,11 @@ def format_columns(columns: list):
             ret_columns.append(f"('{key}', '{i}')")
     return ret_columns
 
+
 def get_nevents(pickles_path, year, sample_name):
     """Adds up nevents over all pickles in ``pickles_path`` directory"""
     try:
-        out_pickles = listdir(pickles_path)
+        out_pickles = [p.name for p in Path(pickles_path).iterdir()]
     except:
         return None
 
@@ -194,6 +154,7 @@ def get_nevents(pickles_path, year, sample_name):
             nevents += out_dict[year][sample_name]["nevents"]
 
     return nevents
+
 
 def check_selector(sample: str, selector: str | list[str]):
     if not isinstance(selector, (list, tuple)):

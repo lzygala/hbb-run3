@@ -12,3 +12,4 @@ shell
 outfiles/
 *.jdl
 docker_stderror
+*.pkl

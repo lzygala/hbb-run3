@@ -125,15 +125,7 @@ def main(args):
 
 
 def parse_args(parser):
-    parser.add_argument(
-        "--year",
-        help="year",
-        type=str,
-        default="2023",
-        choices=["2022", "2022EE", "2023", "2023BPix"],
-    )
     parser.add_argument("--script", default="src/run.py", help="script to run", type=str)
-    parser.add_argument("--tag", default="Test", help="process tag", type=str)
     parser.add_argument(
         "--outdir", dest="outdir", default="outfiles", help="directory for output files", type=str
     )
@@ -157,28 +149,6 @@ def parse_args(parser):
         parser, "submit", default=False, help="submit files as well as create them"
     )
     parser.add_argument("--git-branch", required=True, help="git branch to use", type=str)
-    parser.add_argument(
-        "--samples",
-        default=[],
-        help="which samples to run",  # , default will be all samples",
-        nargs="*",
-    )
-    parser.add_argument(
-        "--subsamples",
-        default=[],
-        help="which subsamples, by default will be all in the specified sample(s)",
-        nargs="*",
-    )
-    parser.add_argument(
-        "--nano-version",
-        type=str,
-        default="v12",
-        choices=[
-            "v12",
-            "v12v2_private",
-        ],
-        help="NanoAOD version",
-    )
     run_utils.add_bool_arg(
         parser,
         "allow-diff-local-repo",
@@ -192,4 +162,5 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parse_args(parser)
     args = parser.parse_args()
+    run_utils.parse_common_args(parser)
     main(args)
