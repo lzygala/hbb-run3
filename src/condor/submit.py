@@ -89,8 +89,6 @@ def main(args):
             njobs = ceil(tot_files / args.files_per_job)
 
             for j in range(njobs):
-                if args.test and j == 2:
-                    break
 
                 prefix = f"{args.year}_{subsample}"
                 localcondor = f"{local_dir}/{prefix}_{j}.jdl"
@@ -106,7 +104,6 @@ def main(args):
                     "endi": (j + 1) * args.files_per_job,
                     "sample": sample,
                     "subsample": subsample,
-                    "processor": args.processor,
                     "t2_prefixes": " ".join(t2_prefixes),
                     "outdir": sample_dir,
                     "jobnum": j,
@@ -128,6 +125,13 @@ def main(args):
 
 
 def parse_args(parser):
+    parser.add_argument(
+        "--year",
+        help="year",
+        type=str,
+        default="2023",
+        choices=["2022", "2022EE", "2023", "2023BPix"],
+    )
     parser.add_argument("--script", default="src/run.py", help="script to run", type=str)
     parser.add_argument("--tag", default="Test", help="process tag", type=str)
     parser.add_argument(
@@ -164,6 +168,16 @@ def parse_args(parser):
         default=[],
         help="which subsamples, by default will be all in the specified sample(s)",
         nargs="*",
+    )
+    parser.add_argument(
+        "--nano-version",
+        type=str,
+        default="v12",
+        choices=[
+            "v12",
+            "v12v2_private",
+        ],
+        help="NanoAOD version",
     )
     run_utils.add_bool_arg(
         parser,
