@@ -23,7 +23,7 @@ done
         sleep 60
     done
 )
-cd hbb || exit
+cd hbb-run3 || exit
 
 commithash=$$(git rev-parse HEAD)
 echo "https://github.com/DAZSLE/hbb-run3/commit/$${commithash}" > commithash.txt

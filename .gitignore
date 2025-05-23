@@ -11,3 +11,4 @@ shell
 .sites_map.json
 outfiles/
 *.jdl
+docker_stderror
