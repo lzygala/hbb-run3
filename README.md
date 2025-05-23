@@ -105,8 +105,10 @@ python src/run.py --sample Hbb --subsample GluGluHto2B_PT-200_M-125  VBFHto2B_M-
 Run the processor for a certain year:
 ```bash
 # this will submit samples in yaml file: src/submit_configs/hbb.yaml
-python3 submit.py --year 2023 --tag 25May22
+python3 submit.py --year $YEAR --tag $TAG
 ```
+
+Format your tags as `TAG=YRMonthDay` e.g. `TAG=25May22`.
 
 To enable the skimming option, add:
 ```bash
@@ -125,8 +127,6 @@ regions = {
 ```
 It is then straightforward to define regions and cuts in order to customize skims for individual studies.
 
-
-
 ### Debugging
 
 - Look for error:
@@ -135,3 +135,27 @@ proxy has expired
 ```
 if your proxy is not valid in the dask submission.
 Note: Start your proxy outside your `./shell` singularity environment.
+
+## Submit jobs with CONDOR
+
+To submit a specific subsample:
+```bash
+python src/condor/submit.py --tag $TAG  --samples Hbb --subsamples GluGluHto2B_PT-200_M-125 --git-branch main  --allow-diff-local-repo
+```
+- Format your tags as `TAG=YRMonthDay` e.g. `TAG=25May22`.
+- You must specify the git branch name
+- If you have local changest that have not been committed to github, it will complain. Add `--allow-diff-local-repo` to avoid that`.
+
+This will create a set of condor submission files. To submit add: `--submit`.
+
+To submit a set of samples (this will submit all years in that yaml file:
+```bash
+nohup python src/condor/submit_from_yaml.py --tag $TAG --yaml src/submit_configs/${YAML}.yaml &> tmp/submitout.txt &
+```
+
+By default the yaml is: `src/submit_configs/hbb_condor.yaml`.
+
+For example:
+```
+python src/condor/submit_from_yaml.py --yaml src/submit_configs/hbb_condor.yaml --tag 25May23 --git-branch main --allow-diff-local-repo
+```

@@ -11,29 +11,27 @@ from pathlib import Path
 
 import submit
 import yaml
-from HH4b import run_utils
+
+from hbb import run_utils
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     run_utils.parse_common_args(parser)
     submit.parse_args(parser)
-    parser.add_argument("--jet", default="AK8", help="jet", type=str)
     parser.add_argument("--yaml", default="", help="yaml file", type=str)
     args = parser.parse_args()
+
+    print("Will submit for all years in yaml")
 
     with Path(args.yaml).open() as file:
         samples_to_submit = yaml.safe_load(file)
 
-    tag = args.tag
     for key, tdict in samples_to_submit.items():
-        # print(f"Submitting for year {key}")
+        print(f"Submitting for year {key}")
         args.year = key
         for sample, sdict in tdict.items():
             args.samples = [sample]
             subsamples = sdict.get("subsamples", [])
-            args.maxchunks = sdict.get("maxchunks", 0)
-            args.chunksize = sdict.get("chunksize", 40000)
-            args.tag = tag
             files_per_job = sdict["files_per_job"]
             if isinstance(files_per_job, dict):
                 for subsample in subsamples:

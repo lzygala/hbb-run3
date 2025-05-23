@@ -13,12 +13,14 @@ from coffea import processor
 from coffea.analysis_tools import PackedSelection, Weights
 from hist.dask import Hist
 
-from hbb.common import (
-    bosonFlavor,
-    getBosons,
-)
 from hbb.corrections import lumiMasks
 
+from .GenSelection import (
+    bosonFlavor,
+    gen_selection_Hbb,
+    gen_selection_V,
+    getBosons,
+)
 from .objects import (
     good_ak4jets,
     good_ak8jets,
@@ -37,6 +39,14 @@ def update(events, collections):
     for name, value in collections.items():
         out = ak.with_field(out, value, name)
     return out
+
+
+# mapping samples to the appropriate function for doing gen-level selections
+gen_selection_dict = {
+    "Hto2B": gen_selection_Hbb,
+    "Wto2Q-": gen_selection_V,
+    "Zto2Q-": gen_selection_V,
+}
 
 
 class categorizer(processor.ProcessorABC):
@@ -154,10 +164,10 @@ class categorizer(processor.ProcessorABC):
         bvl = candidatejet.particleNet_XbbVsQCD
         selection.add("bvlpass", (bvl >= 0.5))
 
-        good_jets = good_ak4jets(set_ak4jets(events.Jet))
+        goodjets = good_ak4jets(set_ak4jets(events.Jet))
 
         # only consider first 4 jets to be consistent with old framework
-        jets = good_jets[:, :4]
+        jets = goodjets[:, :4]
         dphi = abs(jets.delta_phi(candidatejet))
         btag_cut = self._b_taggers[self._year]["AK4"]["Jet_btagPNetB"]["M"]
         selection.add(
@@ -201,12 +211,18 @@ class categorizer(processor.ProcessorABC):
         selection.add("muonkin", (leadingmuon.pt > 55.0) & (abs(leadingmuon.eta) < 2.1))
         selection.add("muonDphiAK8", abs(leadingmuon.delta_phi(candidatejet)) > 2 * np.pi / 3)
 
+        gen_variables = {}
         if isRealData:
             genflavor = ak.zeros_like(candidatejet.pt)
             genBosonPt = ak.zeros_like(candidatejet.pt)
             weights.add("genweight", ak.ones_like(events.run))
         else:
             weights.add("genweight", events.genWeight)
+
+            for d, gen_func in gen_selection_dict.items():
+                if d in dataset:
+                    # match fatjets_xbb
+                    gen_variables = gen_func(events, goodfatjets)
 
             bosons = getBosons(events.GenPart)
             matchedBoson = candidatejet.nearest(bosons, axis=None, threshold=0.8)
@@ -291,9 +307,11 @@ class categorizer(processor.ProcessorABC):
                 {
                     "GenBoson_pt": genBosonPt,
                     "FatJet_pt": candidatejet.pt,
-                    "FatJet_ptmsdcorr": msd_matched,
+                    "FatJet_msdcorr": candidatejet.msdcorr,
                     "FatJet_btag": bvl,
                     "mjj": mjj,
+                    "weight": weights.weight(),
+                    **gen_variables,
                 },
                 depth_limit=1,
             )
