@@ -7,6 +7,20 @@ import sys
 from pathlib import Path
 
 
+def add_bool_arg(parser, name, help, default=False, no_name=None):
+    """Add a boolean command line argument for argparse"""
+    varname = "_".join(name.split("-"))  # change hyphens to underscores
+    group = parser.add_mutually_exclusive_group(required=False)
+    group.add_argument("--" + name, dest=varname, action="store_true", help=help)
+    if no_name is None:
+        no_name = "no-" + name
+        no_help = "don't " + help
+    else:
+        no_help = help
+    group.add_argument("--" + no_name, dest=varname, action="store_false", help=no_help)
+    parser.set_defaults(**{varname: default})
+
+
 def check_branch(git_branch: str, allow_diff_local_repo: bool = False):
     """Check that specified git branch exists in the repo, and local repo is up-to-date"""
     assert not bool(
@@ -50,6 +64,7 @@ def get_fileset(
     starti: int = 0,
     endi: int = -1,
     get_num_files: bool = False,
+    check_subsamples=True,  # to check that all subsamples will be processed
 ):
     """
     Get the fileset for a given year and version of the nanoAOD files.
@@ -81,7 +96,7 @@ def get_fileset(
         get_subsamples = set(set_subsamples).intersection(subsamples)
 
         # identify which subsamples are not in the full set
-        if len(subsamples):
+        if check_subsamples and len(subsamples):
             for subs in subsamples:
                 if subs not in get_subsamples:
                     raise ValueError(f"Subsample {subs} not found for sample {sample}!")

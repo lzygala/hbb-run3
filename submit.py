@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import argparse
 import os
 import pickle
-import sys
 import time
 from datetime import datetime
 from pathlib import Path
@@ -20,19 +20,42 @@ from hbb.run_utils import get_dataset_spec, get_fileset
 
 if __name__ == "__main__":
 
-    try:
-        year = sys.argv[1]
-    except IndexError:
-        print("Please provide a year as an argument.")
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument(
+        "--year",
+        help="year",
+        type=str,
+        required=True,
+        choices=["2022", "2022EE", "2023", "2023BPix"],
+    )
+    parser.add_argument(
+        "--tag",
+        help="name of output folder, format as YRMonthDAY e.g. 25May22",
+        type=str,
+        required=True,
+    )
+    parser.add_argument(
+        "--save-skim",
+        action="store_true",
+        help="save skimmed (flat ntuple) files",
+        default=False,
+    )
+    args = parser.parse_args()
 
-    nano_version = "v12v2_private"
-    print("year: ", year)
+    output_tag = args.tag
+    year = args.year
+
+    nano_version = "v12"
+    print(f"Will grab files from nano version {nano_version}")
+    print(f"Output directory tag: {output_tag}")
+    print("Year: ", year)
     local_dir = Path(__file__).resolve().parent
     print("local_dir: ", local_dir)
-    yaml_path = local_dir / f"src/submit_configs/hbb_{year}.yaml"
+    yaml_path = local_dir / "src/submit_configs/hbb.yaml"
 
-    skim_dir = "/store/group/lpcdihiggsboost/cmantill/"
+    skim_dir = f"/store/group/lpchbbrun3/{os.environ['USER']}/{output_tag}/"
 
+    skim_outpath_local = f"outfiles/{output_tag}/"
     skim_outpath = f"root://cmseos.fnal.gov/{skim_dir}"
 
     print("Running on year: ", year)
@@ -58,8 +81,9 @@ if __name__ == "__main__":
         nano_version,
         samples,
         subsamples,
+        check_subsamples=False,
     )
-    print("Fileset: ", fileset)
+    # print("Fileset: ", fileset)
 
     cluster = LPCCondorCluster(
         transfer_input_files=["src"],
@@ -82,9 +106,8 @@ if __name__ == "__main__":
                 sub_fileset = {subsample: fileset[subsample]}
                 dict_process_files = get_dataset_spec(sub_fileset)
 
-                outpath = "outfiles/"
-                Path(outpath).mkdir(parents=True, exist_ok=True)
-                outfile = outpath + subsample + "_dask.coffea"
+                Path(skim_outpath_local).mkdir(parents=True, exist_ok=True)
+                outfile = skim_outpath_local + subsample + "_dask.coffea"
                 print("Will save to: ", outfile)
 
                 if Path(outfile).is_file():
@@ -94,7 +117,7 @@ if __name__ == "__main__":
                     print("Begin running " + outfile)
                     print(datetime.now())
 
-                print("preprocess", dict_process_files)
+                # print("preprocess", dict_process_files)
                 # Use preprocess from coffea
                 preprocessed_available, preprocessed_total = preprocess(
                     dict_process_files,
@@ -111,7 +134,7 @@ if __name__ == "__main__":
                     },
                     step_size_safety_factor=0.5,
                 )
-                print(preprocessed_available)
+                # print(preprocessed_available)
                 print(
                     "Number of files preprocessed: ",
                     len(preprocessed_available),
@@ -124,7 +147,7 @@ if __name__ == "__main__":
 
                 p = categorizer(
                     year=year,
-                    save_skim=True,
+                    save_skim=args.save_skim,
                     skim_outpath=skim_outpath,
                 )
 

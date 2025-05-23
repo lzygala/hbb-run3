@@ -1,11 +1,8 @@
 #!/bin/bash
 
-# make sure this is installed
-# python3 -m pip install correctionlib==2.0.0rc6
-# pip install --upgrade numpy==1.21.5
-
-# make dir for output
-mkdir outfiles
+# remove old files
+rm *.pkl
+rm *.parquet
 
 for t2_prefix in ${t2_prefixes}
 do
@@ -15,6 +12,7 @@ do
     done
 done
 
+# clone repository
 # try 3 times in case of network errors
 (
     r=3
@@ -39,17 +37,15 @@ done
 pip install -e .
 
 # run code
-# pip install --user onnxruntime
-python -u -W ignore $script --year $year --starti $starti --endi $endi --samples $sample --subsamples $subsample --processor $processor --maxchunks $maxchunks --chunksize $chunksize --nano-version ${nano_version} 
+python -u -W ignore $script --year $year --starti $starti --endi $endi --samples $sample --subsamples $subsample --nano-version ${nano_version}
 
 #move output to t2s
 for t2_prefix in ${t2_prefixes}
 do
-    xrdcp -f outfiles/* "$${t2_prefix}/${outdir}/pickles/out_${jobnum}.pkl"
+    xrdcp -f *.pkl "$${t2_prefix}/${outdir}/pickles/out_${jobnum}.pkl"
     xrdcp -f *.parquet "$${t2_prefix}/${outdir}/parquet/out_${jobnum}.parquet"
-    xrdcp -f *.root "$${t2_prefix}/${outdir}/root/nano_skim_${jobnum}.root"
 done
 
 rm *.parquet
-rm *.root
+rm *.pkl
 rm commithash.txt

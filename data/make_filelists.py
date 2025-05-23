@@ -98,7 +98,6 @@ def get_files(dataset, version):
 
         files_rucio, sites = get_dataset_files(dataset, **sites_cfg, output="first")
 
-        print(len(files_rucio))
         # print(dataset, sites)
 
         # Get rid of invalid files

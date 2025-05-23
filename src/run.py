@@ -100,7 +100,7 @@ def run(year: str, fileset: dict, args: argparse.Namespace):
         },
     )
     output, _ = dask.compute(full_tg, rep)
-    print("output ", output)
+    # print("output ", output)
 
     # save the output to a pickle file
     with Path(f"{local_dir}/{args.starti}-{args.endi}.pkl").open("wb") as f:
