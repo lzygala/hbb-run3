@@ -36,8 +36,8 @@ done
 
 pip install -e .
 
-# run code
-python -u -W ignore $script --year $year --starti $starti --endi $endi --samples $sample --subsamples $subsample --nano-version ${nano_version}
+# run code (saving skim always)
+python -u -W ignore $script --year $year --starti $starti --endi $endi --samples $sample --subsamples $subsample --nano-version ${nano_version} --save-skim
 
 #move output to t2s
 for t2_prefix in ${t2_prefixes}
