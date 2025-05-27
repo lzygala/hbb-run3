@@ -1,5 +1,15 @@
 *.DS_Store
 *.parquet
+*__pycache__/
+dask-report*
+.bashrc
+.cmslpc-local-conf
+.env/
+.local/
+bootstrap.sh
+shell
+.sites_map.json
 outfiles/
-*/__pycache__/
-
+*.jdl
+docker_stderror
+*.pkl
