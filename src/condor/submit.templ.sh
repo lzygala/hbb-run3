@@ -44,7 +44,7 @@ for t2_prefix in ${t2_prefixes}
 do
     xrdcp -f *.pkl "$${t2_prefix}/${outdir}/pickles/out_${jobnum}.pkl"
     for file in *.parquet; do
-	base=$$(basename "$${file}" "_0-20.parquet")
+	base=$$(basename "$${file}" "_${starti}-${endi}.parquet")
 	newname="$${base}_${jobnum}.parquet"
 	xrdcp -f $${file} $${t2_prefix}/${outdir}/parquet/$${newname}
     done
