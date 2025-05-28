@@ -406,7 +406,7 @@ def get_datasets():
             "VGamma": {
                 "WGtoLNuG-1Jets_PTG-100to200": "/WGtoLNuG-1Jets_PTG-100to200_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/Run3Summer22EENanoAODv12-130X_mcRun3_2022_realistic_postEE_v6-v2/NANOAODSIM",
                 "WGtoLNuG-1Jets_PTG-10to100": "/WGtoLNuG-1Jets_PTG-10to100_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/Run3Summer22EENanoAODv12-130X_mcRun3_2022_realistic_postEE_v6-v2/NANOAODSIM",
-                "WGtoLNuG-1Jets_PTG-200to40": "/WGtoLNuG-1Jets_PTG-200to400_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/Run3Summer22EENanoAODv12-130X_mcRun3_2022_realistic_postEE_v6-v3/NANOAODSIM",
+                "WGtoLNuG-1Jets_PTG-200to400": "/WGtoLNuG-1Jets_PTG-200to400_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/Run3Summer22EENanoAODv12-130X_mcRun3_2022_realistic_postEE_v6-v3/NANOAODSIM",
                 "WGtoLNuG-1Jets_PTG-400to600": "/WGtoLNuG-1Jets_PTG-400to600_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/Run3Summer22EENanoAODv12-130X_mcRun3_2022_realistic_postEE_v6-v3/NANOAODSIM",
                 "WGtoLNuG-1Jets_PTG-600": "/WGtoLNuG-1Jets_PTG-600_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/Run3Summer22EENanoAODv12-130X_mcRun3_2022_realistic_postEE_v6-v3/NANOAODSIM",
                 **{
@@ -418,7 +418,7 @@ def get_datasets():
                     for qbin in ["100to200", "200"]
                 },
                 **{
-                    f"WGto2QG-1Jets_PTG{qbin}": f"/WGto2QG-1Jets_PTG-{qbin}_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/Run3Summer22EENanoAODv12-130X_mcRun3_2022_realistic_postEE_v6-v2/NANOAODSIM"
+                    f"WGto2QG-1Jets_PTG-{qbin}": f"/WGto2QG-1Jets_PTG-{qbin}_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/Run3Summer22EENanoAODv12-130X_mcRun3_2022_realistic_postEE_v6-v2/NANOAODSIM"
                     for qbin in ["100to200", "200"]
                 },
             },
@@ -677,7 +677,7 @@ def get_datasets():
                     for qbin in ["100to200", "200"]
                 },
                 **{
-                    f"WGto2QG-1Jets_PTG{qbin}": f"/WGto2QG-1Jets_PTG-{qbin}_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v15-v2/NANOAODSIM"
+                    f"WGto2QG-1Jets_PTG-{qbin}": f"/WGto2QG-1Jets_PTG-{qbin}_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v15-v2/NANOAODSIM"
                     for qbin in ["100to200", "200"]
                 },
             },
@@ -842,7 +842,7 @@ def get_datasets():
                     for qbin in ["100to200", "200"]
                 },
                 **{
-                    f"WGto2QG-1Jets_PTG{qbin}": f"/WGto2QG-1Jets_PTG-{qbin}_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/Run3Summer23BPixNanoAODv12-130X_mcRun3_2023_realistic_postBPix_v6-v2/NANOAODSIM"
+                    f"WGto2QG-1Jets_PTG-{qbin}": f"/WGto2QG-1Jets_PTG-{qbin}_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/Run3Summer23BPixNanoAODv12-130X_mcRun3_2023_realistic_postBPix_v6-v2/NANOAODSIM"
                     for qbin in ["100to200", "200"]
                 },
             },
