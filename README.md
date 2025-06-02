@@ -59,6 +59,8 @@ Then create an environment:
 ```
 micromamba create -n hbb python=3.10 -c conda-forge
 micromamba activate hbb
+# install ipykernel for running jupyter notebooks
+micromamba install  -n hbb ipykernel
 ```
 
 Install requirements (see note on lpc below):
@@ -122,7 +124,7 @@ regions = {
     "signal-ggf",
     "signal-vh",
     "signal-vbf",
-    "muoncontrol",
+    "control-tt",
 }
 ```
 It is then straightforward to define regions and cuts in order to customize skims for individual studies.
@@ -150,12 +152,17 @@ This will create a set of condor submission files. To submit add: `--submit`.
 
 To submit a set of samples (this will submit all years in that yaml file:
 ```bash
-nohup python src/condor/submit_from_yaml.py --tag $TAG --yaml src/submit_configs/${YAML}.yaml &> tmp/submitout.txt &
+nohup python src/condor/submit_from_yaml.py --tag $TAG --yaml src/submit_configs/${YAML}.yaml --year $YEAR &> tmp/submitout.txt &
 ```
 
 By default the yaml is: `src/submit_configs/hbb_condor.yaml`.
 
 For example:
 ```
-python src/condor/submit_from_yaml.py --yaml src/submit_configs/hbb_condor.yaml --tag 25May23 --git-branch main --allow-diff-local-repo
+# The git branch should be specified
+# For best practices, the script will automatically check if your code version is up to date in github. If you have changes that are not committed/pushed use --allow-diff-local-repo
+
+python src/condor/submit_from_yaml.py --yaml src/submit_configs/hbb_condor.yaml --tag 25May23 --git-branch main --allow-diff-local-repo --year 2022EE
 ```
+
+## Plotting features from parquet files

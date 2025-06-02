@@ -17,6 +17,7 @@ from distributed import Client
 from lpcjobqueue import LPCCondorCluster
 
 from hbb.run_utils import get_dataset_spec, get_fileset
+from hbb.xsecs import xsecs
 
 if __name__ == "__main__":
 
@@ -146,6 +147,7 @@ if __name__ == "__main__":
                 from hbb.processors import categorizer
 
                 p = categorizer(
+                    xsecs=xsecs,
                     year=year,
                     save_skim=args.save_skim,
                     skim_outpath=skim_outpath,

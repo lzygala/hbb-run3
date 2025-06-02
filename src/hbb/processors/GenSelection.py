@@ -100,7 +100,6 @@ def gen_selection_Hbb(
 def gen_selection_V(
     events: NanoEventsArray,
     fatjets: FatJetArray,
-    skim_vars: dict,
 ):
     """Get W/Z and children information"""
     vs = events.GenPart[
@@ -111,7 +110,7 @@ def gen_selection_V(
     vs_children = vs.children
     vs_pdgId = abs(vs_children.pdgId)
 
-    GenVVars = {f"GenV{key}": vs_flat[var] for (var, key) in skim_vars.items()}
+    GenVVars = {f"GenV{key}": vs_flat[var] for (var, key) in P4.items()}
     GenVVars["GenVChildren"] = vs_pdgId
 
     vs_flat["is_bb"] = (vs_pdgId[:, :, 0] == b_PDGID) & (vs_pdgId[:, :, 1] == b_PDGID)

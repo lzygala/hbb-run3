@@ -44,16 +44,19 @@ xsecs["WZ"] = 54.3
 xsecs["ZZ"] = 16.7
 
 # Diboson extra
-xsecs["ZZto2L2Q_TuneCP5_13p6TeV_powheg-pythia8"] = 2.36
-xsecs["ZZto2Nu2Q_TuneCP5_13p6TeV_powheg-pythia8"] = 4.48
-xsecs["ZZto4L_TuneCP5_13p6TeV_powheg-pythia8"] = 0.170
-xsecs["ZZto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8"] = 0.674
-xsecs["WZtoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8"] = 12.368
-xsecs["WZto2L2Q_TuneCP5_13p6TeV_powheg-pythia8"] = 3.696
-xsecs["WZto3LNu_TuneCP5_13p6TeV_powheg-pythia8"] = 1.786
-xsecs["WWto4Q_TuneCP5_13p6TeV_powheg-pythia8"] = 78.79
-xsecs["WWtoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8"] = 76.16
-xsecs["WWto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8"] = 18.41
+xsecs["ZZto2L2Q"] = 2.36
+xsecs["ZZto2Nu2Q"] = 4.48
+xsecs["ZZto4L"] = 0.170
+xsecs["ZZto2L2Nu"] = 0.674
+xsecs["WZtoLNu2Q"] = 12.368
+xsecs["WZto2L2Q"] = 3.696
+xsecs["WZto3LNu"] = 1.786
+xsecs["WWto4Q"] = 78.79
+xsecs["WWtoLNu2Q"] = 76.16
+xsecs["WWto2L2Nu"] = 18.41
+# not in XSDB
+xsecs["WWto4Q_1Jets-4FS"] = 0
+xsecs["WZto4Q-1Jets-4FS"] = 0
 
 # SingleTop
 # https://twiki.cern.ch/twiki/bin/view/LHCPhysics/SingleTopNNLORef#Single_top_quark_tW_channel_cros
@@ -94,14 +97,15 @@ xsecs["Zto2Q-4Jets_HT-400to600"] = 124.1
 xsecs["Zto2Q-4Jets_HT-600to800"] = 27.28
 xsecs["Zto2Q-4Jets_HT-800"] = 14.57
 
-xsecs["Wto2Q-2Jets_PTQQ-100to200_1J"] = 1517.0
-xsecs["Wto2Q-2Jets_PTQQ-100to200_2J"] = 1757.0
-xsecs["Wto2Q-2Jets_PTQQ-200to400_1J"] = 103.6
-xsecs["Wto2Q-2Jets_PTQQ-200to400_2J"] = 227.1
-xsecs["Wto2Q-2Jets_PTQQ-400to600_1J"] = 3.496
-xsecs["Wto2Q-2Jets_PTQQ-400to600_2J"] = 12.75
-xsecs["Wto2Q-2Jets_PTQQ-600_1J"] = 0.4221
-xsecs["Wto2Q-2Jets_PTQQ-600_2J"] = 2.128
+# These are bugged for 2022-2023 eras
+xsecs["Wto2Q-2Jets_PTQQ-100to200_1J"] = 1517.0 / 2.0
+xsecs["Wto2Q-2Jets_PTQQ-100to200_2J"] = 1757.0 / 2.0
+xsecs["Wto2Q-2Jets_PTQQ-200to400_1J"] = 103.6 / 2.0
+xsecs["Wto2Q-2Jets_PTQQ-200to400_2J"] = 227.1 / 2.0
+xsecs["Wto2Q-2Jets_PTQQ-400to600_1J"] = 3.496 / 2.0
+xsecs["Wto2Q-2Jets_PTQQ-400to600_2J"] = 12.75 / 2.0
+xsecs["Wto2Q-2Jets_PTQQ-600_1J"] = 0.4221 / 2.0
+xsecs["Wto2Q-2Jets_PTQQ-600_2J"] = 2.128 / 2.0
 
 xsecs["Zto2Q-2Jets_PTQQ-100to200_1J"] = 302.0
 xsecs["Zto2Q-2Jets_PTQQ-100to200_2J"] = 343.9
@@ -126,34 +130,48 @@ xsecs["Zto2Nu-4Jets_HT-200to400"] = 75.96
 xsecs["Zto2Nu-4Jets_HT-400to800"] = 13.19
 xsecs["Zto2Nu-4Jets_HT-800to1500"] = 1.364
 
-xsecs["WtoLNu-4Jets"] = 55390.0
+# NLO
 xsecs["WtoLNu-2Jets"] = 64481.58
 xsecs["WtoLNu-2Jets_0J"] = 55760.0
 xsecs["WtoLNu-2Jets_1J"] = 9529.0
 xsecs["WtoLNu-2Jets_2J"] = 3532.0
+
+# LO
+xsecs["WtoLNu-4Jets"] = 55390.0
 xsecs["WtoLNu-4Jets_1J"] = 9625.0
 xsecs["WtoLNu-4Jets_2J"] = 3161.0
 xsecs["WtoLNu-4Jets_3J"] = 1468.0
 
 xsecs["DYto2L-4Jets_MLL-50"] = 5467.0
+xsecs["DYto2L-4Jets_MLL-10to50"] = 0
+xsecs["DYto2L-4Jets_MLL-50_1J"] = 0
+xsecs["DYto2L-4Jets_MLL-50_2J"] = 0
+xsecs["DYto2L-4Jets_MLL-50_3J"] = 0
+xsecs["DYto2L-4Jets_MLL-50_4J"] = 0
+
+xsecs["DYto2L-2Jets_MLL-10to50"] = 0
 xsecs["DYto2L-2Jets_MLL-50"] = 6688.0
+xsecs["DYto2L-2Jets_MLL-50_0J"] = 5378.0
+xsecs["DYto2L-2Jets_MLL-50_1J"] = 1017.0
+xsecs["DYto2L-2Jets_MLL-50_2J"] = 385.5
 
 # V + gamma
-# xsecs['WGtoLNuG_PT10to100'] = 662.2
-xsecs["WGtoLNuG_PT100to200"] = 2.221
-xsecs["WGtoLNuG_PT200to400"] = 0.2908
-xsecs["WGtoLNuG_PT400to600"] = 0.02231
-xsecs["WGtoLNuG_PT600"] = 0.004907
-xsecs["WGto2QG_PT100to200"] = 3.993
-xsecs["WGto2QG_PT200"] = 0.6326
+xsecs["WGtoLNuG-1Jets_PTG-10to100"] = 662.2
+xsecs["WGtoLNuG-1Jets_PTG-100to200"] = 2.221
+xsecs["WGtoLNuG-1Jets_PTG-200to400"] = 0.2908
+xsecs["WGtoLNuG-1Jets_PTG-400to600"] = 0.02231
+xsecs["WGtoLNuG-1Jets_PTG-600"] = 0.004907
 
-# xsecs['ZGto2NuG_PT10to100'] = 39.93
-xsecs["ZGto2NuG_PT100to200"] = 0.5652
-xsecs["ZGto2NuG_PT200to400"] = 0.07535
-xsecs["ZGto2NuG_PT400to600"] = 0.005547
-xsecs["ZGto2NuG_PT600"] = 0.001177
-xsecs["ZGto2QG_PT100to200"] = 1.949
-xsecs["ZGto2QG_PT200"] = 0.282
+xsecs["WGto2QG-1Jets_PTG-100to200"] = 3.993
+xsecs["WGto2QG-1Jets_PTG-200"] = 0.6326
+
+xsecs["ZGto2NuG-1Jets_PTG-10to100"] = 39.93
+xsecs["ZGto2NuG-1Jets_PTG-100to200"] = 0.5652
+xsecs["ZGto2NuG-1Jets_PTG-200to400"] = 0.07535
+xsecs["ZGto2NuG-1Jets_PTG-400to600"] = 0.005547
+xsecs["ZGto2NuG-1Jets_PTG-600"] = 0.001177
+xsecs["ZGto2QG-1Jets_PTG-100to200"] = 1.949
+xsecs["ZGto2QG-1Jets_PTG-200"] = 0.282
 
 # EWK V
 xsecs["VBFWto2Q"] = 95.3

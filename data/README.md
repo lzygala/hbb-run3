@@ -1,8 +1,6 @@
-## Datasets
+# Datasets lists
 
-### Rucio requests
-
-Rucio allows you to transfer CMS datasets.
+## Setup
 
 - Setup rucio (one time at login):
 ```
@@ -12,7 +10,22 @@ voms-proxy-init -voms cms -rfc -valid 192:00
 export RUCIO_ACCOUNT=$whoami
 ```
 
-- Check requets (replace USERNAME):
+## Make lists
+
+```
+python3 make_filelists.py $VERSION
+```
+
+e.g.
+```
+python3	make_filelists.py v12
+```
+
+## Rucio requests
+
+Rucio allows you to transfer CMS datasets.
+
+- To check requests (replace USERNAME):
 ```
 rucio list-rules --account USERNAME
 ```

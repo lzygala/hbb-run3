@@ -9,11 +9,15 @@ import awkward as ak
 import dask
 import dask_awkward as dak
 import numpy as np
-from coffea import processor
 from coffea.analysis_tools import PackedSelection, Weights
 from hist.dask import Hist
 
-from hbb.corrections import lumiMasks
+from hbb.corrections import (
+    add_pileup_weight,
+    get_jetveto_event,
+    lumiMasks,
+)
+from hbb.processors.SkimmerABC import SkimmerABC
 
 from .GenSelection import (
     bosonFlavor,
@@ -49,14 +53,19 @@ gen_selection_dict = {
 }
 
 
-class categorizer(processor.ProcessorABC):
+class categorizer(SkimmerABC):
     def __init__(
         self,
-        year="2017",
+        year="2022",
+        xsecs: dict = None,
         systematics=False,
         save_skim=False,
         skim_outpath="",
     ):
+        super().__init__()
+
+        self.XSECS = xsecs if xsecs is not None else {}  # in pb
+
         self._year = year
         self._systematics = systematics
         self._ak4tagBranch = "btagDeepFlavB"
@@ -105,14 +114,45 @@ class categorizer(processor.ProcessorABC):
         # TODO return processor.accumulate(self.process_shift(update(events, collections), name) for collections, name in shifts)
         return self.process_shift(events, None)
 
+    def add_weights(
+        self,
+        weights,
+        events,
+        dataset,
+    ) -> tuple[dict, dict]:
+        """Adds weights and variations, saves totals for all norm preserving weights and variations"""
+        weights.add("genweight", events.genWeight)
+
+        add_pileup_weight(weights, self._year, events.Pileup.nPU)
+
+        logger.debug("weights", extra=weights._weights.keys())
+        # logger.debug(f"Weight statistics: {weights.weightStatistics!r}")
+
+        # dictionary of all weights and variations
+        weights_dict = {}
+        # dictionary of total # events for norm preserving variations for normalization in postprocessing
+        totals_dict = {}
+
+        ###################### Normalization (Step 1) ######################
+        # strip the year from the dataset name
+        dataset_no_year = dataset.replace(f"{self._year}_", "")
+        weight_norm = self.get_dataset_norm(self._year, dataset_no_year)
+        # normalize all the weights to xsec, needs to be divided by totals in Step 2 in post-processing
+        for key, val in weights_dict.items():
+            weights_dict[key] = val * weight_norm
+
+        # save the unnormalized weight, to confirm that it's been normalized in post-processing
+        weights_dict["weight_noxsec"] = weights.weight()
+
+        return weights_dict, totals_dict
+
     def process_shift(self, events, shift_name):
 
         dataset = events.metadata["dataset"]
         isRealData = not hasattr(events, "genWeight")
         selection = PackedSelection()
-        weights = Weights(None, storeIndividual=True)
         output = self.make_output()
-
+        weights = Weights(None, storeIndividual=True)
         if shift_name is None and not isRealData:
             output["sumw"][dataset] = ak.sum(events.genWeight)
 
@@ -128,6 +168,10 @@ class categorizer(processor.ProcessorABC):
         else:
             selection.add("lumimask", ak.values_astype(ak.ones_like(events.run), bool))
 
+        fatjets = set_ak8jets(events.FatJet)
+        goodfatjets = good_ak8jets(fatjets)
+        goodjets = good_ak4jets(set_ak4jets(events.Jet))
+
         trigger = ak.values_astype(ak.zeros_like(events.run), bool)
         for t in self._muontriggers[self._year]:
             if t in events.HLT.fields:
@@ -142,8 +186,8 @@ class categorizer(processor.ProcessorABC):
         selection.add("metfilter", metfilter)
         del metfilter
 
-        fatjets = set_ak8jets(events.FatJet)
-        goodfatjets = good_ak8jets(fatjets)
+        cut_jetveto = get_jetveto_event(goodjets, self._year)
+        selection.add("ak4jetveto", cut_jetveto)
 
         selection.add("2FJ", ak.num(goodfatjets, axis=1) == 2)
         selection.add("not2FJ", ak.num(goodfatjets, axis=1) != 2)
@@ -163,8 +207,6 @@ class categorizer(processor.ProcessorABC):
 
         bvl = candidatejet.particleNet_XbbVsQCD
         selection.add("bvlpass", (bvl >= 0.5))
-
-        goodjets = good_ak4jets(set_ak4jets(events.Jet))
 
         # only consider first 4 jets to be consistent with old framework
         jets = goodjets[:, :4]
@@ -215,10 +257,12 @@ class categorizer(processor.ProcessorABC):
         if isRealData:
             genflavor = ak.zeros_like(candidatejet.pt)
             genBosonPt = ak.zeros_like(candidatejet.pt)
-            weights.add("genweight", ak.ones_like(events.run))
         else:
-            weights.add("genweight", events.genWeight)
-
+            weights_dict, totals_temp = self.add_weights(
+                weights,
+                events,
+                dataset,
+            )
             for d, gen_func in gen_selection_dict.items():
                 if d in dataset:
                     # match fatjets_xbb
@@ -233,18 +277,27 @@ class categorizer(processor.ProcessorABC):
             genflavor = bosonFlavor(selmatchedBoson)
             genBosonPt = ak.fill_none(ak.firsts(bosons.pt), 0)
 
-            logger.debug(f"Weight statistics: {weights.weightStatistics!r}")
-
         # softdrop mass, 0 for genflavor == 0
         msd_matched = candidatejet.msdcorr * (genflavor > 0) + candidatejet.msdcorr * (
             genflavor == 0
         )
 
         regions = {
+            "signal-all": [
+                "trigger",
+                "lumimask",
+                "metfilter",
+                "ak4jetveto",
+                "minjetkin",
+                "antiak4btagMediumOppHem",
+                "met",
+                "noleptons",
+            ],
             "signal-ggf": [
                 "trigger",
                 "lumimask",
                 "metfilter",
+                "ak4jetveto",
                 "minjetkin",
                 "antiak4btagMediumOppHem",
                 "met",
@@ -256,6 +309,7 @@ class categorizer(processor.ProcessorABC):
                 "trigger",
                 "lumimask",
                 "metfilter",
+                "ak4jetveto",
                 "minjetkin",
                 "antiak4btagMediumOppHem",
                 "met",
@@ -267,16 +321,18 @@ class categorizer(processor.ProcessorABC):
                 "trigger",
                 "lumimask",
                 "metfilter",
+                "ak4jetveto",
                 "minjetkin",
                 "antiak4btagMediumOppHem",
                 "met",
                 "noleptons",
                 "isvbf",
             ],
-            "muoncontrol": [
+            "control-tt": [
                 "muontrigger",
                 "lumimask",
                 "metfilter",
+                "ak4jetveto",
                 "minjetkin",
                 "ak4btagMedium08",
                 "onemuon",
