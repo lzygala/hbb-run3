@@ -16,6 +16,7 @@ from coffea import nanoevents
 from coffea.dataset_tools import apply_to_fileset, max_chunks, preprocess
 
 from hbb.run_utils import get_dataset_spec, get_fileset
+from hbb.xsecs import xsecs
 
 
 def run(year: str, fileset: dict, args: argparse.Namespace):
@@ -84,6 +85,7 @@ def run(year: str, fileset: dict, args: argparse.Namespace):
     from hbb.processors import categorizer
 
     p = categorizer(
+        xsecs=xsecs,
         year=year,
         save_skim=args.save_skim,
         skim_outpath="outparquet",

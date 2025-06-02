@@ -12,7 +12,11 @@ import numpy as np
 from coffea.analysis_tools import PackedSelection, Weights
 from hist.dask import Hist
 
-from hbb.corrections import lumiMasks
+from hbb.corrections import (
+    add_pileup_weight,
+    get_jetveto_event,
+    lumiMasks,
+)
 from hbb.processors.SkimmerABC import SkimmerABC
 
 from .GenSelection import (
@@ -52,7 +56,7 @@ gen_selection_dict = {
 class categorizer(SkimmerABC):
     def __init__(
         self,
-        year="2017",
+        year="2022",
         xsecs: dict = None,
         systematics=False,
         save_skim=False,
@@ -119,6 +123,8 @@ class categorizer(SkimmerABC):
         """Adds weights and variations, saves totals for all norm preserving weights and variations"""
         weights.add("genweight", events.genWeight)
 
+        add_pileup_weight(weights, self._year, events.Pileup.nPU)
+
         logger.debug("weights", extra=weights._weights.keys())
         # logger.debug(f"Weight statistics: {weights.weightStatistics!r}")
 
@@ -128,7 +134,9 @@ class categorizer(SkimmerABC):
         totals_dict = {}
 
         ###################### Normalization (Step 1) ######################
-        weight_norm = self.get_dataset_norm(self._year, dataset)
+        # strip the year from the dataset name
+        dataset_no_year = dataset.replace(f"{self._year}_", "")
+        weight_norm = self.get_dataset_norm(self._year, dataset_no_year)
         # normalize all the weights to xsec, needs to be divided by totals in Step 2 in post-processing
         for key, val in weights_dict.items():
             weights_dict[key] = val * weight_norm
@@ -160,6 +168,10 @@ class categorizer(SkimmerABC):
         else:
             selection.add("lumimask", ak.values_astype(ak.ones_like(events.run), bool))
 
+        fatjets = set_ak8jets(events.FatJet)
+        goodfatjets = good_ak8jets(fatjets)
+        goodjets = good_ak4jets(set_ak4jets(events.Jet))
+
         trigger = ak.values_astype(ak.zeros_like(events.run), bool)
         for t in self._muontriggers[self._year]:
             if t in events.HLT.fields:
@@ -174,8 +186,8 @@ class categorizer(SkimmerABC):
         selection.add("metfilter", metfilter)
         del metfilter
 
-        fatjets = set_ak8jets(events.FatJet)
-        goodfatjets = good_ak8jets(fatjets)
+        cut_jetveto = get_jetveto_event(goodjets, self._year)
+        selection.add("ak4jetveto", cut_jetveto)
 
         selection.add("2FJ", ak.num(goodfatjets, axis=1) == 2)
         selection.add("not2FJ", ak.num(goodfatjets, axis=1) != 2)
@@ -195,8 +207,6 @@ class categorizer(SkimmerABC):
 
         bvl = candidatejet.particleNet_XbbVsQCD
         selection.add("bvlpass", (bvl >= 0.5))
-
-        goodjets = good_ak4jets(set_ak4jets(events.Jet))
 
         # only consider first 4 jets to be consistent with old framework
         jets = goodjets[:, :4]
@@ -273,10 +283,21 @@ class categorizer(SkimmerABC):
         )
 
         regions = {
+            "signal-all": [
+                "trigger",
+                "lumimask",
+                "metfilter",
+                "ak4jetveto",
+                "minjetkin",
+                "antiak4btagMediumOppHem",
+                "met",
+                "noleptons",
+            ],
             "signal-ggf": [
                 "trigger",
                 "lumimask",
                 "metfilter",
+                "ak4jetveto",
                 "minjetkin",
                 "antiak4btagMediumOppHem",
                 "met",
@@ -288,6 +309,7 @@ class categorizer(SkimmerABC):
                 "trigger",
                 "lumimask",
                 "metfilter",
+                "ak4jetveto",
                 "minjetkin",
                 "antiak4btagMediumOppHem",
                 "met",
@@ -299,6 +321,7 @@ class categorizer(SkimmerABC):
                 "trigger",
                 "lumimask",
                 "metfilter",
+                "ak4jetveto",
                 "minjetkin",
                 "antiak4btagMediumOppHem",
                 "met",
@@ -309,6 +332,7 @@ class categorizer(SkimmerABC):
                 "muontrigger",
                 "lumimask",
                 "metfilter",
+                "ak4jetveto",
                 "minjetkin",
                 "ak4btagMedium08",
                 "onemuon",

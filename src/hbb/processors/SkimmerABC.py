@@ -36,7 +36,9 @@ class SkimmerABC(processor.ProcessorABC):
         if dataset in self.XSECS:
             xsec = self.XSECS[dataset]
             weight_norm = xsec * LUMI[year]
+            logging.info(f"XSEC: {xsec}, LUMI: {LUMI[year]}")
         else:
+            logging.warning(f"Dataset name: {dataset} not found in xsecs.py")
             logging.warning("Weight not normalized to cross section")
             weight_norm = 1
 
