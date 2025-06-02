@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import awkward as ak
 import numpy as np
 from coffea.nanoevents.methods.nanoaod import (
     ElectronArray,
@@ -7,6 +8,25 @@ from coffea.nanoevents.methods.nanoaod import (
     JetArray,
     MuonArray,
 )
+
+
+def trig_match_sel(
+    events, objects, trig_objects, year, trigger, filterbit, ptcut, HLTs, trig_dR=0.2
+):
+    """
+    Returns selection for objects which are trigger matched to the specified trigger.
+    """
+    trigger = HLTs.hlts_by_type(year, trigger, hlt_prefix=False)[0]  # picking first trigger in list
+    trig_fired = events.HLT[trigger]
+    # print(f"{trigger} rate: {ak.mean(trig_fired)}")
+
+    filterbit = 2**filterbit
+
+    pass_trig = (trig_objects.filterBits & filterbit) == filterbit
+    trig_obj = trig_objects[pass_trig]
+    trig_obj_matched = ak.any(objects.metric_table(trig_obj) < trig_dR, axis=2)
+    trig_obj_sel = trig_fired & trig_obj_matched & (objects.pt > ptcut)
+    return trig_obj_sel
 
 
 def good_muons(muons: MuonArray):
@@ -74,8 +94,7 @@ def good_ak4jets(jets: JetArray):
     # PuID might only be needed for forward region (WIP)
 
     # JETID: https://twiki.cern.ch/twiki/bin/viewauth/CMS/JetID13p6TeV
-    # 2 working points: tight and tightLepVeto
-    sel = (jets.pt > 30) & (jets.isTight) & (abs(jets.eta) < 5.0)
+    sel = (jets.pt > 30) & (jets.jetidtight) & (jets.jetidtightlepveto) & (abs(jets.eta) < 5.0)
 
     return jets[sel]
 
