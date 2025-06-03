@@ -7,7 +7,7 @@ from coffea.nanoevents.methods.nanoaod import (
     FatJetArray,
     JetArray,
     MuonArray,
-    PhotonArray
+    PhotonArray,
 )
 
 
@@ -29,13 +29,10 @@ def trig_match_sel(
     trig_obj_sel = trig_fired & trig_obj_matched & (objects.pt > ptcut)
     return trig_obj_sel
 
+
 def good_photons(photons: PhotonArray):
 
-    sel = (
-        (photons.pt > 15)
-        & (photons.isScEtaEB | photons.isScEtaEE)
-        & (photons.mvaID_WP80)
-    )
+    sel = (photons.pt > 15) & (photons.isScEtaEB | photons.isScEtaEE) & (photons.mvaID_WP80)
 
     return photons[sel]
 
@@ -113,8 +110,8 @@ def good_ak4jets(jets: JetArray):
 def set_ak8jets(fatjets: FatJetArray):
     # Left as temporary alternative to get_ak8jets below
     # Lara needs to learn about the particle transformer taggers
-    fatjets["msdcorr"] = fatjets.msoftdrop  # TODO Correction study
-    fatjets["qcdrho"] = 2 * np.log(fatjets.msdcorr / fatjets.pt)
+    fatjets["msd"] = fatjets.msoftdrop
+    fatjets["qcdrho"] = 2 * np.log(fatjets.msd / fatjets.pt)
 
     if "globalParT_Xcs" in fatjets.fields:
         fatjets["ParTPQCD1HF"] = fatjets.globalParT_QCD1HF

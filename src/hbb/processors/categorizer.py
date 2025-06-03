@@ -213,8 +213,8 @@ class categorizer(SkimmerABC):
             "minjetkin",
             (candidatejet.pt >= 300)
             & (candidatejet.pt < 1200)
-            & (candidatejet.msdcorr >= 40.0)
-            & (candidatejet.msdcorr < 201.0)
+            & (candidatejet.msd >= 40.0)
+            & (candidatejet.msd < 201.0)
             & (abs(candidatejet.eta) < 2.5),
         )
 
@@ -244,10 +244,10 @@ class categorizer(SkimmerABC):
         jet1 = ak4_outside_ak8[:, 0:1]
         jet2 = ak4_outside_ak8[:, 1:2]
 
-        deta = abs(ak.firsts(jet1).eta - ak.firsts(jet2).eta)
-        mjj = (ak.firsts(jet1) + ak.firsts(jet2)).mass
+        vbf_deta = abs(ak.firsts(jet1).eta - ak.firsts(jet2).eta)
+        vbf_mjj = (ak.firsts(jet1) + ak.firsts(jet2)).mass
 
-        isvbf = (deta > 3.5) & (mjj > 1000)
+        isvbf = (vbf_deta > 3.5) & (vbf_mjj > 1000)
         isvbf = ak.fill_none(isvbf, False)
         selection.add("isvbf", isvbf)
 
@@ -268,6 +268,7 @@ class categorizer(SkimmerABC):
 
         goodphotons = good_photons(events.Photon)
         nphotons = ak.num(goodphotons, axis=1)
+        leadingphoton = ak.firsts(goodphotons)
 
         selection.add("onephoton", (nphotons == 1))
         selection.add("passphotonveto", (nphotons == 0))
@@ -290,18 +291,25 @@ class categorizer(SkimmerABC):
             bosons = getBosons(events.GenPart)
             matchedBoson = candidatejet.nearest(bosons, axis=None, threshold=0.8)
             match_mask = ((candidatejet.pt - matchedBoson.pt) / matchedBoson.pt < 0.5) & (
-                (candidatejet.msdcorr - matchedBoson.mass) / matchedBoson.mass < 0.3
+                (candidatejet.msd - matchedBoson.mass) / matchedBoson.mass < 0.3
             )
             selmatchedBoson = ak.mask(matchedBoson, match_mask)
             genflavor = bosonFlavor(selmatchedBoson)
             genBosonPt = ak.fill_none(ak.firsts(bosons.pt), 0)
 
         # softdrop mass, 0 for genflavor == 0
-        msd_matched = candidatejet.msdcorr * (genflavor > 0) + candidatejet.msdcorr * (
-            genflavor == 0
-        )
+        msd_matched = candidatejet.msd * (genflavor > 0) + candidatejet.msd * (genflavor == 0)
 
         regions = {
+            "signal-all": [
+                "trigger",
+                "lumimask",
+                "metfilter",
+                "minjetkin",
+                "antiak4btagMediumOppHem",
+                "met",
+                "noleptons",
+            ],
             "signal-ggf": [
                 "trigger",
                 "lumimask",
@@ -312,6 +320,7 @@ class categorizer(SkimmerABC):
                 "noleptons",
                 "notvbf",
                 "not2FJ",
+                "bvlpass",
             ],
             "signal-vh": [
                 "trigger",
@@ -323,6 +332,7 @@ class categorizer(SkimmerABC):
                 "noleptons",
                 "notvbf",
                 "2FJ",
+                "bvlpass",
             ],
             "signal-vbf": [
                 "trigger",
@@ -333,6 +343,7 @@ class categorizer(SkimmerABC):
                 "met",
                 "noleptons",
                 "isvbf",
+                "bvlpass",
             ],
             "control-tt": [
                 "muontrigger",
@@ -351,6 +362,7 @@ class categorizer(SkimmerABC):
                 "minjetkin",
                 "ak4btagMedium08",
                 "onephoton",
+                "bvlpass",
             ],
         }
 
@@ -378,9 +390,12 @@ class categorizer(SkimmerABC):
                 {
                     "GenBoson_pt": genBosonPt,
                     "FatJet_pt": candidatejet.pt,
-                    "FatJet_msdcorr": candidatejet.msdcorr,
-                    "FatJet_btag": bvl,
-                    "mjj": mjj,
+                    "FatJet_msd": candidatejet.msd,
+                    "FatJet_TXbb": candidatejet.particleNet_XbbVsQCD,
+                    "FatJet_TXcc": candidatejet.particleNet_XccVsQCD,
+                    "VBFJets_Mjj": vbf_mjj,
+                    "VBFJets_DEta": vbf_deta,
+                    "Photon_pt": leadingphoton.pt,
                     "weight": nominal_weight,
                     **gen_variables,
                 },
@@ -408,7 +423,7 @@ class categorizer(SkimmerABC):
                 pt1=normalize(candidatejet.pt, cut),
                 msd1=normalize(msd_matched, cut),
                 bvl1=normalize(bvl, cut),
-                mjj=normalize(mjj, cut),
+                mjj=normalize(vbf_mjj, cut),
                 weight=weight,
             )
 
