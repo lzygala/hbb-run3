@@ -1,0 +1,18 @@
+{
+  "2022": {
+    "Muon": { "files_per_job": 10, },
+    "VJets_lep_NLO": { "files_per_job": 10, },
+  },
+  "2022EE": {
+    "Muon": { "files_per_job": 10, },
+    "VJets_lep_NLO": { "files_per_job": 10, },
+  },
+  "2023": {
+    "Muon": { "files_per_job": 10, },
+    "VJets_lep_NLO": { "files_per_job": 10, },
+  },
+  "2023BPix": {
+    "Muon": { "files_per_job": 10, },
+    "VJets_lep_NLO": { "files_per_job": 10, },
+  }
+}

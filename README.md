@@ -106,9 +106,13 @@ python src/run.py --sample Hbb --subsample GluGluHto2B_PT-200_M-125  VBFHto2B_M-
 
 Run the processor for a certain year:
 ```bash
-# this will submit samples in yaml file: src/submit_configs/hbb.yaml
-python3 submit.py --year $YEAR --tag $TAG
+python3 submit.py --year $YEAR --tag $TAG --yaml src/submit_configs/hbb_example.yaml
 ```
+e.g.:
+```
+python3 submit.py --year 2022 --tag test --yaml src/submit_configs/hbb_example.yaml
+```
+
 
 Format your tags as `TAG=YRMonthDay` e.g. `TAG=25May22`.
 

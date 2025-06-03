@@ -41,21 +41,36 @@ if __name__ == "__main__":
         help="save skimmed (flat ntuple) files",
         default=False,
     )
+    parser.add_argument(
+        "--nano-version",
+        type=str,
+        default="v12",
+        choices=[
+            "v12",
+            "v12v2_private",
+        ],
+        help="NanoAOD version",
+    )
+    parser.add_argument(
+        "--yaml",
+        default="src/submit_configs/hbb_example.yaml",
+        help="yaml file with samples and subsamples",
+        type=str,
+    )
     args = parser.parse_args()
 
     output_tag = args.tag
     year = args.year
+    nano_version = args.nano_version
 
-    nano_version = "v12"
     print(f"Will grab files from nano version {nano_version}")
     print(f"Output directory tag: {output_tag}")
     print("Year: ", year)
     local_dir = Path(__file__).resolve().parent
     print("local_dir: ", local_dir)
-    yaml_path = local_dir / "src/submit_configs/hbb.yaml"
+    yaml_path = local_dir / args.yaml
 
     skim_dir = f"/store/group/lpchbbrun3/{os.environ['USER']}/{output_tag}/"
-
     skim_outpath_local = f"outfiles/{output_tag}/"
     skim_outpath = f"root://cmseos.fnal.gov/{skim_dir}"
 
@@ -65,14 +80,15 @@ if __name__ == "__main__":
     with Path(yaml_path).open() as file:
         samples_to_submit = yaml.safe_load(file)
     try:
-        samples_to_submit = samples_to_submit[year]
+        samples_to_submit = samples_to_submit[args.year]
     except Exception as e:
-        raise KeyError(f"Year {year} not present in yaml dictionary") from e
+        raise KeyError(f"Year {args.year} not present in yaml dictionary") from e
 
     samples = list(samples_to_submit.keys())
     subsamples = []
     for sample in samples:
-        subsamples.extend(samples_to_submit[sample].keys())
+        subsamples.extend(samples_to_submit[sample].get("subsamples", []))
+
     print("Samples: ", samples)
     print("Subsamples: ", subsamples)
 
