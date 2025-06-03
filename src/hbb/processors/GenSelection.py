@@ -139,3 +139,19 @@ def gen_selection_V(
     # )  # checks if any of the fatjets is matched to the W/Z
 
     return {**GenVVars}
+
+
+def gen_selection_Vg(
+    events: NanoEventsArray,
+    fatjets: FatJetArray,
+):
+    # call gen selection V to extract the Z/W
+    GenVVars = gen_selection_V(events, fatjets)
+
+    gammas = events.GenPart[
+        (abs(events.GenPart.pdgId) == G_PDGID) * events.GenPart.hasFlags(GEN_FLAGS)
+    ]
+    gammas = ak.firsts(gammas)
+    GenGammaVars = {f"GenGamma{key}": gammas[var] for (var, key) in P4.items()}
+
+    return {**GenVVars, **GenGammaVars}
