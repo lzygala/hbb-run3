@@ -7,6 +7,7 @@ from coffea.nanoevents.methods.nanoaod import (
     FatJetArray,
     JetArray,
     MuonArray,
+    PhotonArray
 )
 
 
@@ -27,6 +28,16 @@ def trig_match_sel(
     trig_obj_matched = ak.any(objects.metric_table(trig_obj) < trig_dR, axis=2)
     trig_obj_sel = trig_fired & trig_obj_matched & (objects.pt > ptcut)
     return trig_obj_sel
+
+def good_photons(photons: PhotonArray):
+
+    sel = (
+        (photons.pt > 15)
+        & (photons.isScEtaEB | photons.isScEtaEE)
+        & (photons.mvaID_WP80)
+    )
+
+    return photons[sel]
 
 
 def good_muons(muons: MuonArray):

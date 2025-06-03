@@ -30,6 +30,7 @@ from .objects import (
     good_ak8jets,
     good_electrons,
     good_muons,
+    good_photons,
     set_ak4jets,
     set_ak8jets,
 )
@@ -253,6 +254,12 @@ class categorizer(SkimmerABC):
         selection.add("muonkin", (leadingmuon.pt > 55.0) & (abs(leadingmuon.eta) < 2.1))
         selection.add("muonDphiAK8", abs(leadingmuon.delta_phi(candidatejet)) > 2 * np.pi / 3)
 
+        goodphotons = good_photons(events.Photon)
+        nphotons = ak.num(goodphotons, axis=1)
+
+        selection.add("onephoton", (nphotons == 1))
+        selection.add("passphotonveto", (nphotons == 0))
+
         gen_variables = {}
         if isRealData:
             genflavor = ak.zeros_like(candidatejet.pt)
@@ -283,62 +290,17 @@ class categorizer(SkimmerABC):
         )
 
         regions = {
-            "signal-all": [
-                "trigger",
-                "lumimask",
-                "metfilter",
-                "ak4jetveto",
-                "minjetkin",
-                "antiak4btagMediumOppHem",
-                "met",
-                "noleptons",
-            ],
-            "signal-ggf": [
-                "trigger",
-                "lumimask",
-                "metfilter",
-                "ak4jetveto",
-                "minjetkin",
-                "antiak4btagMediumOppHem",
-                "met",
-                "noleptons",
-                "notvbf",
-                "not2FJ",
-            ],
-            "signal-vh": [
-                "trigger",
-                "lumimask",
-                "metfilter",
-                "ak4jetveto",
-                "minjetkin",
-                "antiak4btagMediumOppHem",
-                "met",
-                "noleptons",
-                "notvbf",
-                "2FJ",
-            ],
-            "signal-vbf": [
-                "trigger",
-                "lumimask",
-                "metfilter",
-                "ak4jetveto",
-                "minjetkin",
-                "antiak4btagMediumOppHem",
-                "met",
-                "noleptons",
-                "isvbf",
-            ],
-            "control-tt": [
-                "muontrigger",
-                "lumimask",
-                "metfilter",
-                "ak4jetveto",
-                "minjetkin",
-                "ak4btagMedium08",
-                "onemuon",
-                "muonkin",
-                "muonDphiAK8",
-            ],
+            'signal-ggf': ['trigger','lumimask','metfilter','minjetkin','antiak4btagMediumOppHem','met','noleptons','notvbf','not2FJ'],
+            'signal-vh': ['trigger','lumimask','metfilter','minjetkin','antiak4btagMediumOppHem','met','noleptons','notvbf','2FJ'],
+            'signal-vbf': ['trigger','lumimask','metfilter','minjetkin','antiak4btagMediumOppHem','met','noleptons','isvbf'],
+            'muoncontrol': ['muontrigger','lumimask','metfilter','minjetkin','ak4btagMedium08', 'onemuon', 'muonkin', 'muonDphiAK8'],
+
+            'signal-ggf_gveto': ['trigger','lumimask','metfilter','minjetkin','antiak4btagMediumOppHem','met','noleptons','notvbf','not2FJ', 'passphotonveto'],
+            'signal-vh_gveto': ['trigger','lumimask','metfilter','minjetkin','antiak4btagMediumOppHem','met','noleptons','notvbf','2FJ', 'passphotonveto'],
+            'signal-vbf_gveto': ['trigger','lumimask','metfilter','minjetkin','antiak4btagMediumOppHem','met','noleptons','isvbf', 'passphotonveto'],
+            'muoncontrol_gveto': ['muontrigger','lumimask','metfilter','minjetkin','ak4btagMedium08', 'onemuon', 'muonkin', 'muonDphiAK8', 'passphotonveto'],
+
+            'Zgamma': ['trigger','lumimask','metfilter','minjetkin','ak4btagMedium08','onephoton'],
         }
 
         def normalize(val, cut):
