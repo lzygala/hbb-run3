@@ -23,6 +23,7 @@ from .GenSelection import (
     bosonFlavor,
     gen_selection_Hbb,
     gen_selection_V,
+    gen_selection_Vg,
     getBosons,
 )
 from .objects import (
@@ -30,6 +31,7 @@ from .objects import (
     good_ak8jets,
     good_electrons,
     good_muons,
+    good_photons,
     set_ak4jets,
     set_ak8jets,
 )
@@ -50,6 +52,7 @@ gen_selection_dict = {
     "Hto2B": gen_selection_Hbb,
     "Wto2Q-": gen_selection_V,
     "Zto2Q-": gen_selection_V,
+    "ZGto2QG-": gen_selection_Vg,
 }
 
 
@@ -74,6 +77,9 @@ class categorizer(SkimmerABC):
 
         with Path("src/hbb/muon_triggers.json").open() as f:
             self._muontriggers = json.load(f)
+
+        with Path("src/hbb/egamma_triggers.json").open() as f:
+            self._egammatriggers = json.load(f)
 
         with Path("src/hbb/triggers.json").open() as f:
             self._triggers = json.load(f)
@@ -168,15 +174,18 @@ class categorizer(SkimmerABC):
         else:
             selection.add("lumimask", ak.values_astype(ak.ones_like(events.run), bool))
 
-        fatjets = set_ak8jets(events.FatJet)
-        goodfatjets = good_ak8jets(fatjets)
-        goodjets = good_ak4jets(set_ak4jets(events.Jet))
-
         trigger = ak.values_astype(ak.zeros_like(events.run), bool)
         for t in self._muontriggers[self._year]:
             if t in events.HLT.fields:
                 trigger = trigger | events.HLT[t]
         selection.add("muontrigger", trigger)
+        del trigger
+
+        trigger = ak.values_astype(ak.zeros_like(events.run), bool)
+        for t in self._egammatriggers[self._year]:
+            if t in events.HLT.fields:
+                trigger = trigger | events.HLT[t]
+        selection.add("egammatrigger", trigger)
         del trigger
 
         metfilter = ak.values_astype(ak.ones_like(events.run), bool)
@@ -185,6 +194,10 @@ class categorizer(SkimmerABC):
                 metfilter = dask.array.bitwise_and(metfilter, events.Flag[flag])
         selection.add("metfilter", metfilter)
         del metfilter
+
+        fatjets = set_ak8jets(events.FatJet)
+        goodfatjets = good_ak8jets(fatjets)
+        goodjets = good_ak4jets(set_ak4jets(events.Jet))
 
         cut_jetveto = get_jetveto_event(goodjets, self._year)
         selection.add("ak4jetveto", cut_jetveto)
@@ -200,8 +213,8 @@ class categorizer(SkimmerABC):
             "minjetkin",
             (candidatejet.pt >= 300)
             & (candidatejet.pt < 1200)
-            & (candidatejet.msdcorr >= 40.0)
-            & (candidatejet.msdcorr < 201.0)
+            & (candidatejet.msd >= 40.0)
+            & (candidatejet.msd < 201.0)
             & (abs(candidatejet.eta) < 2.5),
         )
 
@@ -231,10 +244,10 @@ class categorizer(SkimmerABC):
         jet1 = ak4_outside_ak8[:, 0:1]
         jet2 = ak4_outside_ak8[:, 1:2]
 
-        deta = abs(ak.firsts(jet1).eta - ak.firsts(jet2).eta)
-        mjj = (ak.firsts(jet1) + ak.firsts(jet2)).mass
+        vbf_deta = abs(ak.firsts(jet1).eta - ak.firsts(jet2).eta)
+        vbf_mjj = (ak.firsts(jet1) + ak.firsts(jet2)).mass
 
-        isvbf = (deta > 3.5) & (mjj > 1000)
+        isvbf = (vbf_deta > 3.5) & (vbf_mjj > 1000)
         isvbf = ak.fill_none(isvbf, False)
         selection.add("isvbf", isvbf)
 
@@ -252,6 +265,13 @@ class categorizer(SkimmerABC):
         selection.add("onemuon", (nmuons == 1) & (nelectrons == 0))
         selection.add("muonkin", (leadingmuon.pt > 55.0) & (abs(leadingmuon.eta) < 2.1))
         selection.add("muonDphiAK8", abs(leadingmuon.delta_phi(candidatejet)) > 2 * np.pi / 3)
+
+        goodphotons = good_photons(events.Photon)
+        nphotons = ak.num(goodphotons, axis=1)
+        leadingphoton = ak.firsts(goodphotons)
+
+        selection.add("onephoton", (nphotons == 1))
+        selection.add("passphotonveto", (nphotons == 0))
 
         gen_variables = {}
         if isRealData:
@@ -271,23 +291,20 @@ class categorizer(SkimmerABC):
             bosons = getBosons(events.GenPart)
             matchedBoson = candidatejet.nearest(bosons, axis=None, threshold=0.8)
             match_mask = ((candidatejet.pt - matchedBoson.pt) / matchedBoson.pt < 0.5) & (
-                (candidatejet.msdcorr - matchedBoson.mass) / matchedBoson.mass < 0.3
+                (candidatejet.msd - matchedBoson.mass) / matchedBoson.mass < 0.3
             )
             selmatchedBoson = ak.mask(matchedBoson, match_mask)
             genflavor = bosonFlavor(selmatchedBoson)
             genBosonPt = ak.fill_none(ak.firsts(bosons.pt), 0)
 
         # softdrop mass, 0 for genflavor == 0
-        msd_matched = candidatejet.msdcorr * (genflavor > 0) + candidatejet.msdcorr * (
-            genflavor == 0
-        )
+        msd_matched = candidatejet.msd * (genflavor > 0) + candidatejet.msd * (genflavor == 0)
 
         regions = {
             "signal-all": [
                 "trigger",
                 "lumimask",
                 "metfilter",
-                "ak4jetveto",
                 "minjetkin",
                 "antiak4btagMediumOppHem",
                 "met",
@@ -297,47 +314,55 @@ class categorizer(SkimmerABC):
                 "trigger",
                 "lumimask",
                 "metfilter",
-                "ak4jetveto",
                 "minjetkin",
                 "antiak4btagMediumOppHem",
                 "met",
                 "noleptons",
                 "notvbf",
                 "not2FJ",
+                "bvlpass",
             ],
             "signal-vh": [
                 "trigger",
                 "lumimask",
                 "metfilter",
-                "ak4jetveto",
                 "minjetkin",
                 "antiak4btagMediumOppHem",
                 "met",
                 "noleptons",
                 "notvbf",
                 "2FJ",
+                "bvlpass",
             ],
             "signal-vbf": [
                 "trigger",
                 "lumimask",
                 "metfilter",
-                "ak4jetveto",
                 "minjetkin",
                 "antiak4btagMediumOppHem",
                 "met",
                 "noleptons",
                 "isvbf",
+                "bvlpass",
             ],
             "control-tt": [
                 "muontrigger",
                 "lumimask",
                 "metfilter",
-                "ak4jetveto",
                 "minjetkin",
                 "ak4btagMedium08",
                 "onemuon",
                 "muonkin",
                 "muonDphiAK8",
+            ],
+            "control-zgamma": [
+                "egammatrigger",
+                "lumimask",
+                "metfilter",
+                "minjetkin",
+                "ak4btagMedium08",
+                "onephoton",
+                "bvlpass",
             ],
         }
 
@@ -365,9 +390,12 @@ class categorizer(SkimmerABC):
                 {
                     "GenBoson_pt": genBosonPt,
                     "FatJet_pt": candidatejet.pt,
-                    "FatJet_msdcorr": candidatejet.msdcorr,
-                    "FatJet_btag": bvl,
-                    "mjj": mjj,
+                    "FatJet_msd": candidatejet.msd,
+                    "FatJet_TXbb": candidatejet.particleNet_XbbVsQCD,
+                    "FatJet_TXcc": candidatejet.particleNet_XccVsQCD,
+                    "VBFJets_Mjj": vbf_mjj,
+                    "VBFJets_DEta": vbf_deta,
+                    "Photon_pt": leadingphoton.pt,
                     "weight": nominal_weight,
                     **gen_variables,
                 },
@@ -395,7 +423,7 @@ class categorizer(SkimmerABC):
                 pt1=normalize(candidatejet.pt, cut),
                 msd1=normalize(msd_matched, cut),
                 bvl1=normalize(bvl, cut),
-                mjj=normalize(mjj, cut),
+                mjj=normalize(vbf_mjj, cut),
                 weight=weight,
             )
 

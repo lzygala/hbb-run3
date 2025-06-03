@@ -1,0 +1,18 @@
+{
+  "2022": {
+    "EGamma": { "files_per_job": 10, },
+    "VGamma": { "files_per_job": 15, },
+  },
+  "2022EE": {
+    "EGamma": { "files_per_job": 10, },
+    "VGamma": { "files_per_job": 15, },
+  },
+  "2023": {
+    "EGamma": { "files_per_job": 10, },
+    "VGamma": { "files_per_job": 15, },
+  },
+  "2023BPix": {
+    "EGamma": { "files_per_job": 10, },
+    "VGamma": { "files_per_job": 15, },
+  }
+}
