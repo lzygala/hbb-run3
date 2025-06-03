@@ -369,6 +369,8 @@ class categorizer(SkimmerABC):
         else:
             systematics = [shift_name]
 
+        nominal_weight = ak.ones_like(candidatejet.pt) if isRealData else weights.weight()
+
         output_array = None
         if self._save_skim:
             # define "flat" output array
@@ -379,7 +381,7 @@ class categorizer(SkimmerABC):
                     "FatJet_msdcorr": candidatejet.msdcorr,
                     "FatJet_btag": bvl,
                     "mjj": mjj,
-                    "weight": weights.weight(),
+                    "weight": nominal_weight,
                     **gen_variables,
                 },
                 depth_limit=1,
@@ -389,13 +391,14 @@ class categorizer(SkimmerABC):
             selections = regions[region]
             cut = selection.all(*selections)
             sname = "nominal" if systematic is None else systematic
+
             if wmod is None:
-                if systematic in weights.variations:
+                if systematic in weights.variations and not isRealData:
                     weight = weights.weight(modifier=systematic)[cut]
                 else:
-                    weight = weights.weight()[cut]
+                    weight = nominal_weight[cut]
             else:
-                weight = weights.weight()[cut] * wmod[cut]
+                weight = nominal_weight[cut] * wmod[cut]
 
             output["templates"].fill(
                 dataset=dataset,
@@ -424,6 +427,7 @@ class categorizer(SkimmerABC):
                 skim_path.mkdir(parents=True, exist_ok=True)
             print("Saving skim to: ", skim_path)
 
+            # possible TODO: add systematic weights?
             output["skim"][region] = dak.to_parquet(
                 output_array[cut],
                 str(skim_path),
