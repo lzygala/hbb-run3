@@ -175,10 +175,3 @@ Example:
 ```
 python src/condor/check_jobs.py  --location /eos/uscms/store/user/lpchbbrun3/cmantill/ --tag 25Jun25_v12 --year 2023
 ```
-
-## Plotting features from parquet files
-
-Example:
-```
-python make_histos.py  --region signal-all --year 2022
-```
