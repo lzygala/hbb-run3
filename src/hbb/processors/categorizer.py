@@ -338,7 +338,6 @@ class categorizer(SkimmerABC):
                 "noleptons",
                 "notvbf",
                 "not2FJ",
-                "particleNetXbbpass",
             ],
             "signal-vh": [
                 "trigger",
@@ -350,7 +349,6 @@ class categorizer(SkimmerABC):
                 "noleptons",
                 "notvbf",
                 "2FJ",
-                "particleNetXbbpass",
             ],
             "signal-vbf": [
                 "trigger",
@@ -361,7 +359,6 @@ class categorizer(SkimmerABC):
                 "lowmet",
                 "noleptons",
                 "isvbf",
-                "particleNetXbbpass",
             ],
             "control-tt": [
                 "muontrigger",
@@ -380,7 +377,6 @@ class categorizer(SkimmerABC):
                 "minjetkin",
                 "ak4btagMedium08",
                 "onephoton",
-                "particleNetXbbpass",
             ],
         }
 
