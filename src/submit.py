@@ -10,6 +10,7 @@ from pathlib import Path
 import dask
 import uproot
 import yaml
+from coffea import  util
 from coffea.dataset_tools import apply_to_fileset, max_chunks, preprocess
 from coffea.nanoevents import NanoAODSchema
 from dask.distributed import performance_report
@@ -183,8 +184,7 @@ if __name__ == "__main__":
                 output, _ = dask.compute(full_tg, rep)
 
                 # save the output to a pickle file
-                with Path(outfile).open("wb") as f:
-                    pickle.dump(output, f)
+                util.save(output, outfile)
                 print("Saved output to ", outfile)
                 print(datetime.now())
 
