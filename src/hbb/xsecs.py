@@ -86,7 +86,7 @@ xsecs["WminusH_Hto2C_WtoLNu_M-125"] = 0.8889 * BR_WLNU * BR_HCC
 xsecs["WplusH_Hto2B_Wto2Q_M-125"] = 0.5677 * BR_WQQ * BR_HBB  # 0.222
 xsecs["WplusH_Hto2C_Wto2Q_M-125"] = 0.5677 * BR_WQQ * BR_HCC 
 xsecs["WplusH_Hto2B_WtoLNu_M-125"] = 0.5677 * BR_WLNU * BR_HBB  # 0.106
-xsecs["WplusH_Hto2CC_WtoLNu_M-125"] = 0.5677 * BR_WLNU * BR_HBB  
+xsecs["WplusH_Hto2C_WtoLNu_M-125"] = 0.5677 * BR_WLNU * BR_HBB  
 xsecs["ZH_Hto2B_Zto2L_M-125"] = 0.8079 * BR_ZLL * BR_HBB
 xsecs["ZH_Hto2C_Zto2L_M-125"] = 0.8079 * BR_ZLL * BR_HCC
 xsecs["ZH_Hto2B_Zto2Q_M-125"] = 0.8079 * BR_ZQQ * BR_HBB
@@ -99,7 +99,7 @@ xsecs["ggZH_Hto2C_Zto2Nu_M-125"] = 0.1360 * BR_ZLNU * BR_HCC
 xsecs["ggZH_Hto2B_Zto2Q_M-125"] = 0.1360 * BR_ZQQ * BR_HBB
 xsecs["ggZH_Hto2C_Zto2Q_M-125"] = 0.1360 * BR_ZQQ * BR_HCC
 xsecs["ttHto2B_M-125"] = 0.5700 * BR_HBB
-xsecs["ttHto2B_M-125"] = 0.5700 * BR_HCC
+xsecs["ttHto2C_M-125"] = 0.5700 * BR_HCC
 
 # V+Jets
 xsecs["Wto2Q-3Jets_HT-200to400"] = 2723.0
