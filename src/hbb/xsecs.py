@@ -16,6 +16,19 @@ BR_HCC = 2.860e-02
 
 xsecs = {}
 
+# GJets: Obtained from XSDB
+xsecs["GJ_PTG-20to100"] = 195300
+xsecs["GJ_PTG-100to200"] = 1396
+xsecs["GJ_PTG-200to400"] = 88.52
+xsecs["GJ_PTG-400to600"] = 3.783
+xsecs["GJ_PTG-600"] = 0.5755
+
+# TTGamma: Obtained from XSDB
+xsecs["TTG-1Jets_PTG-10to100"] = 4.216
+xsecs["TTG-1Jets_PTG-100to200"] = 0.4114
+xsecs["TTG-1Jets_PTG-200"] = 0.1284
+
+
 # QCD
 # QCD-HT (obtained by Cristina manually with genXsecAnalyzer)
 xsecs["QCD_HT-40to70"] = 311600000.0

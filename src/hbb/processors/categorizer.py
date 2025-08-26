@@ -213,7 +213,9 @@ class categorizer(SkimmerABC):
         selection.add("2FJ", ak.num(goodfatjets, axis=1) == 2)
         selection.add("not2FJ", ak.num(goodfatjets, axis=1) != 2)
 
-        xbbfatjets = goodfatjets[ak.argsort(goodfatjets.particleNet_XbbVsQCD, axis=1, ascending=False)]
+        xbbfatjets = goodfatjets[
+            ak.argsort(goodfatjets.particleNet_XbbVsQCD, axis=1, ascending=False)
+        ]
 
         candidatejet = ak.firsts(xbbfatjets[:, 0:1])
         subleadingjet = ak.firsts(xbbfatjets[:, 1:2])
