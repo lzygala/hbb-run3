@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import os
-import pickle
 import time
 from datetime import datetime
 from pathlib import Path
@@ -10,7 +9,7 @@ from pathlib import Path
 import dask
 import uproot
 import yaml
-from coffea import  util
+from coffea import util
 from coffea.dataset_tools import apply_to_fileset, max_chunks, preprocess
 from coffea.nanoevents import NanoAODSchema
 from dask.distributed import performance_report
@@ -72,8 +71,8 @@ if __name__ == "__main__":
     yaml_path = local_dir / args.yaml
 
     skim_dir = f"/store/group/lpchbbrun3/{os.environ['USER']}/{output_tag}/"
-    skim_outpath_local = f"outfiles/{output_tag}/"
     skim_outpath = f"root://cmseos.fnal.gov/{skim_dir}"
+    outpath_local = f"outfiles/{output_tag}/"
 
     print("Running on year: ", year)
     print("Using yaml file: ", yaml_path)
@@ -124,8 +123,8 @@ if __name__ == "__main__":
                 sub_fileset = {subsample: fileset[subsample]}
                 dict_process_files = get_dataset_spec(sub_fileset)
 
-                Path(skim_outpath_local).mkdir(parents=True, exist_ok=True)
-                outfile = skim_outpath_local + subsample + "_dask.coffea"
+                Path(outpath_local).mkdir(parents=True, exist_ok=True)
+                outfile = outpath_local + subsample + "_dask.coffea"
                 print("Will save to: ", outfile)
 
                 if Path(outfile).is_file():

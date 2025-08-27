@@ -1,9 +1,11 @@
 # hbb-run3
 
 ## Setup environment
+Two important things to make sure every time you are working in your analysis:
+- Ensure you have a valid grid certificate:
+     You can check that with `voms-proxy-info -all` and start one with `voms-proxy-init --rfc --voms cms -valid 192:00`.
+- It is good practice to always run your analysis within a dedicated virtual environment to isolate project-specific dependencies and ensure reproducibility. Instructions on how to start the environment for this analysis below.
 
-Always make sure you have a valid grid certificate (`voms-proxy-init -voms cms -valid 192:00`).
-It is good practice to always run your analysis within a dedicated virtual environment.
 
 **Virtual environment**:
 
@@ -90,25 +92,32 @@ Enable singularity
 
 ## Run processor locally
 
-**Activate your micromamba environment:**
-Remember to reload micromamba to use it
+**In your micromamba environment:**
 ```
 source ~/.bashrc
 micromamba activate hbb
 ```
 
-To run on a sinfle file (starting index at 0, ending index at 1) for one subsample:
+To run on a single file (starting index at 0, ending index at 1) for one subsample
 ```bash
 python src/run.py --sample Hbb --subsample GluGluHto2B_PT-200_M-125 --starti 0 --endi 1
 ```
 To save skim, add `--save-skim`
 
-To run on multiple subsamples
+To run on multiple subsamples:
 ```
 python src/run.py --sample Hbb --subsample GluGluHto2B_PT-200_M-125  VBFHto2B_M-125 --starti 0 --endi 1
 ```
 
 ## Submit jobs with DASK
+
+**Singularity**: (for submitting jobs)
+Set up environment by following instructions at https://github.com/CoffeaTeam/lpcjobqueue/
+
+Enable singularity
+```bash
+./shell coffeateam/coffea-dask-almalinux9:latest
+```
 
 **In the bash shell:**
 
@@ -121,11 +130,14 @@ e.g.:
 python3 src/submit.py --year 2022 --tag test --yaml src/submit_configs/hbb_example.yaml
 ```
 
-Format your tags like `TAG=YRMonthDay` e.g. `TAG=25May22`:
+
+Format your tags as `TAG=YRMonthDay` e.g. `TAG=25May22`. You can do that with:
 ```bash
-export YEAR=2022
 export TAG=25May22
+export YEAR=2022
 ```
+
+To enable the skimming option, add `--save-skim`
 
 The processor will output parquet files for each of the regions defined in categorizer.py, for example:
 
@@ -156,8 +168,8 @@ To submit a specific subsample:
 python src/condor/submit.py --tag $TAG  --samples Hbb --subsamples GluGluHto2B_PT-200_M-125 --git-branch main  --allow-diff-local-repo --submit
 ```
 - Format your tags as `TAG=YRMonthDay` e.g. `TAG=25May22`.
-- You must specify the git branch name
-- If you have local changest that have not been committed to github, it will complain. Add `--allow-diff-local-repo` to avoid that`.
+- You **must** specify the git branch name
+- If you have local changest that have not been committed to github, it will complain. Add `--allow-diff-local-repo` to avoid that.
 
 This will create a set of condor submission files. To submit add: `--submit`.
 
