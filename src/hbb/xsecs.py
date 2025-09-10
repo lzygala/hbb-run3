@@ -16,6 +16,19 @@ BR_HCC = 2.860e-02
 
 xsecs = {}
 
+# GJets: Obtained from XSDB
+xsecs["GJ_PTG-20to100"] = 195300
+xsecs["GJ_PTG-100to200"] = 1396
+xsecs["GJ_PTG-200to400"] = 88.52
+xsecs["GJ_PTG-400to600"] = 3.783
+xsecs["GJ_PTG-600"] = 0.5755
+
+# TTGamma: Obtained from XSDB
+xsecs["TTG-1Jets_PTG-10to100"] = 4.216
+xsecs["TTG-1Jets_PTG-100to200"] = 0.4114
+xsecs["TTG-1Jets_PTG-200"] = 0.1284
+
+
 # QCD
 # QCD-HT (obtained by Cristina manually with genXsecAnalyzer)
 xsecs["QCD_HT-40to70"] = 311600000.0
@@ -77,16 +90,16 @@ xsecs["GluGluHto2C_M-125"] = 51.53 * BR_HCC  # 29.93
 xsecs["GluGluHto2B_PT-200_M-125"] = 0.5246 * (43.92 / 27.8) * BR_HBB
 xsecs["GluGluHto2C_PT-200_M-125"] = 0.5247 * (43.92 / 27.8) * BR_HCC
 # https://twiki.cern.ch/twiki/bin/view/LHCPhysics/LHCHWG136TeVxsec_extrap
-xsecs["VBFHto2B_M-125_dipoleRecoilOn"] = 4.023 * BR_HBB  # 2.34
-xsecs["VBFHto2C_M-125_dipoleRecoilOn"] = 4.023 * BR_HCC  # 2.34
+xsecs["VBFHto2B_M-125_dipoleRecoilOn"] = 4.078 * BR_HBB  # 2.34
+xsecs["VBFHto2C_M-125"] = 4.078 * BR_HCC  # 2.34
 xsecs["WminusH_Hto2B_Wto2Q_M-125"] = 0.8889 * BR_WQQ * BR_HBB  # 0.349
-xsecs["WminusH_Hto2C_Wto2Q_M-125"] = 0.8889 * BR_WQQ * BR_HCC  
+xsecs["WminusH_Hto2C_Wto2Q_M-125"] = 0.8889 * BR_WQQ * BR_HCC
 xsecs["WminusH_Hto2B_WtoLNu_M-125"] = 0.8889 * BR_WLNU * BR_HBB  # 0.167
-xsecs["WminusH_Hto2C_WtoLNu_M-125"] = 0.8889 * BR_WLNU * BR_HCC  
+xsecs["WminusH_Hto2C_WtoLNu_M-125"] = 0.8889 * BR_WLNU * BR_HCC
 xsecs["WplusH_Hto2B_Wto2Q_M-125"] = 0.5677 * BR_WQQ * BR_HBB  # 0.222
-xsecs["WplusH_Hto2C_Wto2Q_M-125"] = 0.5677 * BR_WQQ * BR_HCC 
+xsecs["WplusH_Hto2C_Wto2Q_M-125"] = 0.5677 * BR_WQQ * BR_HCC
 xsecs["WplusH_Hto2B_WtoLNu_M-125"] = 0.5677 * BR_WLNU * BR_HBB  # 0.106
-xsecs["WplusH_Hto2C_WtoLNu_M-125"] = 0.5677 * BR_WLNU * BR_HBB  
+xsecs["WplusH_Hto2C_WtoLNu_M-125"] = 0.5677 * BR_WLNU * BR_HBB
 xsecs["ZH_Hto2B_Zto2L_M-125"] = 0.8079 * BR_ZLL * BR_HBB
 xsecs["ZH_Hto2C_Zto2L_M-125"] = 0.8079 * BR_ZLL * BR_HCC
 xsecs["ZH_Hto2B_Zto2Q_M-125"] = 0.8079 * BR_ZQQ * BR_HBB
