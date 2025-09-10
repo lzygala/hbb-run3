@@ -1,5 +1,5 @@
 {
-    "JetData": [
+    "Jetdata": [
         "JetMET_Run2022C_single",
         "JetMET_Run2022C",
         "JetMET_Run2022D",
@@ -12,7 +12,7 @@
         "JetMET_Run2023Cv4",
         "JetMET_Run2023D"
     ],
-    "MuonData": [
+    "Muondata": [
         "Muon_Run2022C_single",
         "Muon_Run2022C",
         "Muon_Run2022D",
@@ -25,7 +25,7 @@
         "Muon_Run2023Cv4",
         "Muon_Run2023D"
     ],
-    "EGammaData": [
+    "EGammadata": [
         "EGamma_Run2022C",
         "EGamma_Run2022D",
         "EGamma_Run2022E",
@@ -45,7 +45,7 @@
     ],
     "VBF": [
         "VBFHto2B_M-125_dipoleRecoilOn",
-        "VBFHto2C_M-125_dipoleRecoilOn"
+        "VBFHto2C_M-125"
     ],
     "WH": [
         "WminusH_Hto2B_Wto2Q_M-125",
@@ -182,21 +182,21 @@
         "VBFWto2Q",
         "VBFWtoLNu"
     ],
-    "ParkingSingleMuon": [
+    "ParkingSingleMuondata": [
         "ParkingSingleMuon_Run2022F",
         "ParkingSingleMuon_Run2022G"
     ],
-    "ParkingDoubleMuonLowMass": [
+    "ParkingDoubleMuonLowMassdata": [
         "ParkingDoubleMuonLowMass_Run2022F",
         "ParkingDoubleMuonLowMass_Run2022G"
     ],
-    "ParkingHH": [
+    "ParkingHHdata": [
         "ParkingHH_Run2023Cv1",
         "ParkingHH_Run2023Cv2",
         "ParkingHH_Run2023Cv3",
         "ParkingHH_Run2023Cv4"
     ],
-    "ParkingVBF": [
+    "ParkingVBFdata": [
         "ParkingVBF_Run2023Cv3",
         "ParkingVBF_Run2023Cv4"
     ]

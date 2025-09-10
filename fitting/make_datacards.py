@@ -80,9 +80,9 @@ def get_template(year, tag, tagger, sName, passed, ptbin, cat, obs, syst, muon=F
     Read msd template from root file
     """
 
-    f = ROOT.TFile.Open(f"{tag}/{year}/signalregion_{tagger}.root")
+    f = ROOT.TFile.Open(f"results/{tag}/{year}/{tagger}/signalregion_{tagger}.root")
     if muon:
-        f = ROOT.TFile.Open(f"{tag}/{year}/muonCR_{tagger}.root")
+        f = ROOT.TFile.Open(f"results/{tag}/{year}/{tagger}/muonCR_{tagger}.root")
 
     name = cat+'fail_'
     if passed:
@@ -156,7 +156,7 @@ def plot_mctf(tf_MCtempl, msdbins, name,year,tag,tagger):
     """
     import matplotlib.pyplot as plt
 
-    outdir = f"{tag}/{year}/{tagger}/plots/"
+    outdir = f"results/{tag}/{year}/{tagger}/plots/"
     if not os.path.exists(outdir):
         os.mkdir(outdir)
 
@@ -323,7 +323,7 @@ def ggfvbf_rhalphabet(tmpdir,year,tag,tagger,
             Nfail_qcd_MC += qcdfail
 
             # initial values                                         
-            initF = f"{tag}/{year}/{tagger}/initial_vals/initial_vals_{cat}.json"                       
+            initF = f"results/{tag}/{year}/{tagger}/initial_vals/initial_vals_{cat}.json"                       
             print('Initial fit values read from file initial_vals*')
             with open(initF) as f:
                 initial_vals = np.array(json.load(f)['initial_vals'])
@@ -410,7 +410,7 @@ def ggfvbf_rhalphabet(tmpdir,year,tag,tagger,
         tf_MCtempl_params_final = tf_MCtempl(ptscaled, rhoscaled)
 
         # initial values   
-        initdF = f"{tag}/{year}/{tagger}/initial_vals/initial_vals_data_{cat}.json"                                                                                                                                       
+        initdF = f"results/{tag}/{year}/{tagger}/initial_vals/initial_vals_data_{cat}.json"                                                                                                                                       
         with open(initdF) as f:
             initial_vals_data = np.array(json.load(f)['initial_vals'])
 
@@ -487,7 +487,7 @@ def ggfvbf_rhalphabet(tmpdir,year,tag,tagger,
  
                 # END loop over MC samples 
 
-                data_obs = get_template(year, tag, tagger, 'JetData', isPass, binindex+1, cat[:3]+'_', obs=msd, syst='nominal')
+                data_obs = get_template(year, tag, tagger, 'Jetdata', isPass, binindex+1, cat[:3]+'_', obs=msd, syst='nominal')
 
                 if not isPass:
                     Nfail_data += data_obs[0].sum()
