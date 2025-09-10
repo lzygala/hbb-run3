@@ -175,10 +175,12 @@
         "ZGto2QG-1Jets_PTG-200",
         "ZGto2NuG-1Jets_PTG-10to100"
     ],
-    "EWKV": [
+    "EWKZ": [
         "VBFZto2Q",
         "VBFZto2L",
-        "VBFZto2Nu",
+        "VBFZto2Nu"
+    ],
+    "EWKW": [
         "VBFWto2Q",
         "VBFWtoLNu"
     ],

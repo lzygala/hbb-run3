@@ -51,7 +51,6 @@ axis_to_column = {
 
 def fill_ptbinned_histogram(events, region):
     """
-    Fills histogram after event selection of any variable.
     The histogram has a pt-binned axis for FatJet0.
 
     :param events: Dictionary of events loaded from parquet files.
@@ -109,11 +108,7 @@ def main(args):
 
     regions=["signal-ggf","signal-vbf","signal-vh","control-tt","control-zgamma"]
 
-    # Set the main directory where parquet files are stored
-    # TODO: make the dir_name an argument
-    MAIN_DIR = "/eos/uscms/store/group/lpchbbrun3/"
-    dir_name = f"skims/{tag}"
-    path_to_dir = f"{MAIN_DIR}/{dir_name}/"
+    path_to_dir = f"/eos/uscms/store/group/lpchbbrun3/skims/{tag}"
 
     # Define the columns to load for each sample
     load_columns = [

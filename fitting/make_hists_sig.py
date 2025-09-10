@@ -42,8 +42,6 @@ def slice_hist(outfile, h, region, p, name, selection_dict):
     outfile[name] = sliced
     return
 
-
-
 def main(args):
 
     year = args.year
@@ -69,7 +67,6 @@ def main(args):
 
     # mjjbins = [1000j,13000j]
     # ptbins = [450j, 1200j]
-
 
     vbf = pickle.load(open(picklename,'rb')).integrate('region','signal-vbf')
     ggf = pickle.load(open(picklename,'rb')).integrate('region','signal-ggf')
@@ -97,7 +94,6 @@ def main(args):
     sample_2_set = {'genflavor': slice(1j, 3j, sum)}
     sample_bb_set = {'genflavor': slice(3j, 4j, sum)}
 
-    tasks = []
 
     for region in reg_pkl:
         for p in samples:
@@ -161,7 +157,6 @@ def main(args):
                 slice_hist(fout, reg_pkl[region], region, p,  f"{region}_pass_pt{i+1}_{p}bb", pt_pass_set_bb)
                 slice_hist(fout, reg_pkl[region], region, p,  f"{region}_fail_pt{i+1}_{p}bb", pt_fail_set_bb)
                 
-    return tasks
 
 if __name__ == "__main__":
 

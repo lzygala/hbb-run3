@@ -1,6 +1,6 @@
 from __future__ import print_function, division
-import sys, os
-import csv, json
+import os
+import json
 import numpy as np
 from scipy.interpolate import interp1d
 import scipy.stats
@@ -430,7 +430,7 @@ def ggfvbf_rhalphabet(tmpdir,year,tag,tagger,
     model = rl.Model('testModel_'+year)
 
     # exclude QCD from MC samps
-    samps = ['ggF','VBF','WH','ZH','ttH','Wjets','Zjets','Zjetsbb','ttbar','singlet','VV','EWKV','EWKVbb',]#'Zgamma','Wgamma'] #'EWKW','EWKZ','EWKZbb',
+    samps = ['ggF','VBF','WH','ZH','ttH','Wjets','Zjets','Zjetsbb','ttbar','singlet','VV','EWKW','EWKZ','EWKZbb']
     sigs = ['ggF','VBF','WH','ZH']
 
     for cat in cats:
