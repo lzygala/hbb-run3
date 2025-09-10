@@ -335,7 +335,6 @@ void draw(int index, bool pass, string cat, bool log=true){
   string thisbin = "pt"+to_string(index+1);
   string thisbin_fit = "ptbin"+to_string(index) + cat;
 
-  cout<<"----------AAAAAAAAAAAAAA------------------"<<endl;
 
   /* DATA */
   TFile* dataf = new TFile("bbvcc_full/2022/signalregion_bb.root");
