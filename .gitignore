@@ -14,3 +14,9 @@ outfiles/
 docker_stderror
 *.pkl
 *~
+*.d
+*.pcm
+*.so
+*.npy
+fitting/results/
+fitting/templates/
