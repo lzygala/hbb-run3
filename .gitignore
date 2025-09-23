@@ -12,5 +12,7 @@ shell
 outfiles/
 *.jdl
 docker_stderror
+nobackup/
 *.pkl
 *~
+plots/
