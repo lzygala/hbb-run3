@@ -52,7 +52,7 @@ unset __mamba_setup
 
 Then create an environment:
 ```
-micromamba create -n hbb python=3.10 -c conda-forge
+micromamba create -n hbb python=3.10 root -c conda-forge
 micromamba activate hbb
 # install ipykernel for running jupyter notebooks
 micromamba install  -n hbb ipykernel
