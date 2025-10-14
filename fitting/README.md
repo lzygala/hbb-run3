@@ -1,23 +1,23 @@
 ### Going from skims to datacards
 
-Still use hbb environment (make sure it has root installed)
+Set up fitting environment (only needs to be done once)
 ```
 micromamba activate hbb
 ```
 
-Create pickled hist templates per year
 ```
-python3 make_pkl.py --year 2022EE --tag 25July21
+micromamba install root cms-combine -c conda-forge
 ```
 
-Create signal region root pass / fail histograms 
-Select which tagger you want to use to define your pass and fail regions (bb or cc)
+Definition of categories and fit observable are in setup.json
+
+Create signal region root pass / fail histograms from skims
 ```
-python3 make_hists_sig.py --year 2022EE --tag 25July21 --tagger bb
+python3 make_hists.py --year 2022EE --tag 25July21
 ```
 
 Create your datacards and fit your QCD MC transfer factors
 ```
-python3 make_datacards.py --year 2022EE --tag 25July21 --tagger bb
+python3 make_datacards.py --year 2022EE --tag 25July21
 ```
 
