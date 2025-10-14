@@ -18,7 +18,7 @@ def fill_hists(outdict, events, region, reg_cfg, obs_cfg, qq_true):
 
     bins_list = reg_cfg["bins"]
     bin_pname = reg_cfg["bin_pname"]
-    str_bin_br=reg_cfg["branch_name"]
+    str_bin_br = reg_cfg["branch_name"]
 
     for _process_name, data in events.items():
 
@@ -26,16 +26,15 @@ def fill_hists(outdict, events, region, reg_cfg, obs_cfg, qq_true):
         weight_val = data["finalWeight"].astype(float)
         s = "nominal"
 
-        bin_br=data[str_bin_br]
+        bin_br = data[str_bin_br]
         obs_br = data[obs_cfg["branch_name"]]
 
         Txbb = data["FatJet0_pnetTXbb"]
         Txcc = data["FatJet0_pnetTXcc"]
         Txbbxcc = data["FatJet0_pnetXbbXcc"]
-        msd = data["GenMatchedMSD"]
         genf = data["GenFlavor"]
 
-        pre_selection = (msd > 40) & (msd < 201)
+        pre_selection = (obs_br > obs_cfg["min"]) & (obs_br < obs_cfg["max"])
 
         selection_dict = {
             "pass_bb": pre_selection & (Txbbxcc  > 0.95) & (Txbb  > Txcc),
@@ -135,6 +134,9 @@ def main(args):
        ("VBFPair_mjj", "<", 13000),
     ]
 
+    if not obs_cfg["branch_name"] in columns:
+        columns.append(obs_cfg["branch_name"])
+
     out_hists = {}
     for process, datasets in pmap.items():
         for dataset in datasets:
@@ -146,8 +148,7 @@ def main(args):
                         {process: [dataset]},
                         columns=columns,
                         region=cfg["name"],
-                        filters=filters,
-                        year = year
+                        filters=filters
                     )
 
                     if not events:
