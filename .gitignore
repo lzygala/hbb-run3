@@ -12,6 +12,7 @@ shell
 outfiles/
 *.jdl
 docker_stderror
+nobackup/
 *.pkl
 *~
 *.d
@@ -20,3 +21,4 @@ docker_stderror
 *.npy
 fitting/results/
 fitting/templates/
+plots/
