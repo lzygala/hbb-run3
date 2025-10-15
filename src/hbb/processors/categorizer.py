@@ -400,8 +400,8 @@ class categorizer(SkimmerABC):
         else:
             systematics = [shift_name]
 
-        nominal_weight = ak.ones_like(candidatejet.pt) if isRealData else weights_dict["weight"]
-        gen_weight = ak.ones_like(candidatejet.pt) if isRealData else events.genWeight
+        nominal_weight = ak.ones_like(events.run) if isRealData else weights_dict["weight"]
+        gen_weight = ak.ones_like(events.run) if isRealData else events.genWeight
 
         output_array = None
         if self._save_skim:
