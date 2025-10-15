@@ -109,58 +109,6 @@ To run on multiple subsamples:
 python src/run.py --sample Hbb --subsample GluGluHto2B_PT-200_M-125  VBFHto2B_M-125 --starti 0 --endi 1
 ```
 
-## Submit jobs with DASK
-
-**Singularity**: (for submitting jobs)
-Set up environment by following instructions at https://github.com/CoffeaTeam/lpcjobqueue/
-
-Enable singularity
-```bash
-./shell coffeateam/coffea-dask-almalinux9:latest
-```
-
-**In the bash shell:**
-
-Run the processor for a certain year:
-```bash
-python3 src/submit.py --year $YEAR --tag $TAG --yaml src/submit_configs/hbb_example.yaml
-```
-e.g.:
-```
-python3 src/submit.py --year 2022 --tag test --yaml src/submit_configs/hbb_example.yaml
-```
-
-
-Format your tags as `TAG=YRMonthDay` e.g. `TAG=25May22`. You can do that with:
-```bash
-export TAG=25May22
-export YEAR=2022
-```
-
-To enable the skimming option, add `--save-skim`
-
-The processor will output parquet files for each of the regions defined in categorizer.py, for example:
-
-```python
-regions = {
-    "signal-ggf",
-    "signal-vh",
-    "signal-vbf",
-    "control-tt",
-}
-```
-It is then straightforward to define regions and cuts in order to customize skims for individual studies.
-
-### Debugging
-
-- Look for error:
-```
-proxy has expired
-```
-if your proxy is not valid in the dask submission.
-Note: Start your proxy outside your `./shell` singularity environment.
-
-
 ## Submit jobs with CONDOR
 
 To submit a specific subsample:
