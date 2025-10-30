@@ -220,7 +220,7 @@ def get_datasets():  ## PRIVATE production with GloParTv2
                 "ggZH_Hto2C_Zto2L_M-125": "/store/group/lpcpfnano/PFNano_Run3/25v2/lzygala/mc_2022EE/ggZH_Hto2C_Zto2L_M-125_TuneCP5_13p6TeV_powheg-pythia8",
                 "ggZH_Hto2C_Zto2Nu_M-125": "/store/group/lpcpfnano/PFNano_Run3/25v2/lzygala/mc_2022EE/ggZH_Hto2C_Zto2Nu_M-125_TuneCP5_13p6TeV_powheg-pythia8",
                 "ggZH_Hto2C_Zto2Q_M-125": "/store/group/lpcpfnano/PFNano_Run3/25v2/lzygala/mc_2022EE/ggZH_Hto2C_Zto2Q_M-125_TuneCP5_13p6TeV_powheg-pythia8",
-                # "ttHto2C_M-125": "/store/group/lpcpfnano/PFNano_Run3/25v2/lzygala/mc_2022EE/ttHto2C_M-125_TuneCP5_13p6TeV_powheg-pythia8",
+                "ttHto2C_M-125": "/store/group/lpcpfnano/PFNano_Run3/25v2/lzygala/mc_2022EE/ttHto2C_M-125_TuneCP5_13p6TeV_powheg-pythia8",
             },
             "QCD": {
                 "QCD_HT-100to200": "/store/group/lpcpfnano/PFNano_Run3/25v2/sixie/mc_2022EE/QCD-4Jets_HT-100to200_TuneCP5_13p6TeV_madgraphMLM-pythia8",
@@ -417,7 +417,7 @@ def get_datasets():  ## PRIVATE production with GloParTv2
                 "ggZH_Hto2C_Zto2L_M-125": "/store/group/lpcpfnano/PFNano_Run3/25v2/lzygala/mc_2023/ggZH_Hto2C_Zto2L_M-125_TuneCP5_13p6TeV_powheg-pythia8",
                 "ggZH_Hto2C_Zto2Nu_M-125": "/store/group/lpcpfnano/PFNano_Run3/25v2/lzygala/mc_2023/ggZH_Hto2C_Zto2Nu_M-125_TuneCP5_13p6TeV_powheg-pythia8",
                 "ggZH_Hto2C_Zto2Q_M-125": "/store/group/lpcpfnano/PFNano_Run3/25v2/lzygala/mc_2023/ggZH_Hto2C_Zto2Q_M-125_TuneCP5_13p6TeV_powheg-pythia8",
-                # "ttHto2C_M-125": "/store/group/lpcpfnano/PFNano_Run3/25v2/lzygala/mc_2023/ttHto2C_M-125_TuneCP5_13p6TeV_powheg-pythia8",
+                "ttHto2C_M-125": "/store/group/lpcpfnano/PFNano_Run3/25v2/lzygala/mc_2023/ttHto2C_M-125_TuneCP5_13p6TeV_powheg-pythia8",
             },
             "QCD": {
                 "QCD_HT-100to200": "/store/group/lpcpfnano/PFNano_Run3/25v2/sixie/mc_2023/QCD-4Jets_HT-100to200_TuneCP5_13p6TeV_madgraphMLM-pythia8",
@@ -582,7 +582,7 @@ def get_datasets():  ## PRIVATE production with GloParTv2
                 "ggZH_Hto2C_Zto2L_M-125": "/store/group/lpcpfnano/PFNano_Run3/25v2/lzygala/mc_2023BPix/ggZH_Hto2C_Zto2L_M-125_TuneCP5_13p6TeV_powheg-pythia8",
                 "ggZH_Hto2C_Zto2Nu_M-125": "/store/group/lpcpfnano/PFNano_Run3/25v2/lzygala/mc_2023BPix/ggZH_Hto2C_Zto2Nu_M-125_TuneCP5_13p6TeV_powheg-pythia8",
                 "ggZH_Hto2C_Zto2Q_M-125": "/store/group/lpcpfnano/PFNano_Run3/25v2/lzygala/mc_2023BPix/ggZH_Hto2C_Zto2Q_M-125_TuneCP5_13p6TeV_powheg-pythia8",
-                # "ttHto2C_M-125": "/store/group/lpcpfnano/PFNano_Run3/25v2/lzygala/mc_2023BPix/ttHto2C_M-125_TuneCP5_13p6TeV_powheg-pythia8",
+                "ttHto2C_M-125": "/store/group/lpcpfnano/PFNano_Run3/25v2/lzygala/mc_2023BPix/ttHto2C_M-125_TuneCP5_13p6TeV_powheg-pythia8",
             },
             "QCD": {
                 "QCD_HT-100to200": "/store/group/lpcpfnano/PFNano_Run3/25v2/sixie/mc_2023BPix/QCD-4Jets_HT-100to200_TuneCP5_13p6TeV_madgraphMLM-pythia8",
