@@ -59,6 +59,7 @@ class categorizer(SkimmerABC):
     def __init__(
         self,
         year="2022",
+        nano_version="v12",
         xsecs: dict = None,
         systematics=False,
         save_skim=False,
@@ -69,6 +70,7 @@ class categorizer(SkimmerABC):
         self.XSECS = xsecs if xsecs is not None else {}  # in pb
 
         self._year = year
+        self._nano_version = nano_version
         self._systematics = systematics
         self._save_skim = save_skim
         self._skim_outpath = skim_outpath
@@ -190,9 +192,9 @@ class categorizer(SkimmerABC):
         selection.add("metfilter", metfilter)
         del metfilter
 
-        fatjets = set_ak8jets(events.FatJet)
+        fatjets = set_ak8jets(events.FatJet, self._year, self._nano_version)
         goodfatjets = good_ak8jets(fatjets)
-        jets = set_ak4jets(events.Jet)
+        jets = set_ak4jets(events.Jet, self._year, self._nano_version)
         goodjets = good_ak4jets(jets)
 
         cut_jetveto = get_jetveto_event(jets, self._year)
@@ -201,7 +203,11 @@ class categorizer(SkimmerABC):
         selection.add("2FJ", ak.num(goodfatjets, axis=1) == 2)
         selection.add("not2FJ", ak.num(goodfatjets, axis=1) != 2)
 
-        xbbfatjets = goodfatjets[ak.argsort(goodfatjets.pnetXbbXcc, axis=1, ascending=False)]
+        if "v12" in self._nano_version:
+            xbbfatjets = goodfatjets[ ak.argsort(goodfatjets.pnetXbbXcc, axis=1, ascending=False) ]
+        else:
+            xbbfatjets = goodfatjets[ ak.argsort(goodfatjets.ParTPXbbXcc, axis=1, ascending=False) ]
+
 
         candidatejet = ak.firsts(xbbfatjets[:, 0:1])
         subleadingjet = ak.firsts(xbbfatjets[:, 1:2])
@@ -250,7 +256,7 @@ class categorizer(SkimmerABC):
             ak.max(ak4_outside_ak8.btagPNetB, axis=1, mask_identity=False) > btag_cut,
         )
 
-        met = events.MET
+        met = events.PuppiMET   #PuppiMET Recommended for Run3
         selection.add("lowmet", met.pt < 140.0)
 
         # VBF specific variables
@@ -442,6 +448,32 @@ class categorizer(SkimmerABC):
                 "genWeight": gen_weight,
                 **gen_variables,
             }
+
+            parT_array = {
+                "FatJet0_ParTPQCD": candidatejet.ParTPQCD,
+                "FatJet0_ParTPXbb": candidatejet.ParTPXbb,
+                "FatJet0_ParTPXcc": candidatejet.ParTPXcc,
+                "FatJet0_ParTPXqq": candidatejet.ParTPXqq,
+                "FatJet0_ParTPXcs": candidatejet.ParTPXcs,
+                "FatJet0_ParTPXbbVsQCD": candidatejet.ParTPXbbVsQCD,
+                "FatJet0_ParTPXccVsQCD": candidatejet.ParTPXccVsQCD,
+                "FatJet0_ParTPXbbXcc": candidatejet.ParTPXbbXcc,
+                "FatJet0_ParTmassGeneric": candidatejet.ParTmassGeneric,
+                "FatJet0_ParTmassX2p": candidatejet.ParTmassX2p,
+                "FatJet1_ParTPQCD": candidatejet.ParTPQCD,
+                "FatJet1_ParTPXbb": candidatejet.ParTPXbb,
+                "FatJet1_ParTPXcc": candidatejet.ParTPXcc,
+                "FatJet1_ParTPXqq": candidatejet.ParTPXqq,
+                "FatJet1_ParTPXcs": candidatejet.ParTPXcs,
+                "FatJet1_ParTPXbbVsQCD": candidatejet.ParTPXbbVsQCD,
+                "FatJet1_ParTPXccVsQCD": candidatejet.ParTPXccVsQCD,
+                "FatJet1_ParTPXbbXcc": candidatejet.ParTPXbbXcc,
+                "FatJet1_ParTmassGeneric": candidatejet.ParTmassGeneric,
+                "FatJet1_ParTmassX2p": candidatejet.ParTmassX2p
+            }
+
+            if not "v12" in self._nano_version:
+                output_array = {**output_array, **parT_array}
 
             # extra variables for big array
             output_array_extra = {
