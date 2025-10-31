@@ -11,10 +11,12 @@ import pathlib
 from pathlib import Path
 
 import awkward as ak
+import dask_awkward as dak
+import numpy as np
 import correctionlib
 from coffea.analysis_tools import Weights
 from coffea.nanoevents.methods import vector
-from coffea.nanoevents.methods.nanoaod import JetArray
+from coffea.nanoevents.methods.nanoaod import JetArray, FatJetArray
 
 ak.behavior.update(vector.behavior)
 package_path = str(pathlib.Path(__file__).parent.parent.resolve())
@@ -38,6 +40,7 @@ pog_jsons = {
     "jet_jec": ["JME", "jet_jerc.json.gz"],
     "jetveto": ["JME", "jetvetomaps.json.gz"],
     "btagging": ["BTV", "btagging.json.gz"],
+    "jetid" : ["JME", "jetid.json.gz"],
 }
 
 years = {
@@ -135,3 +138,35 @@ def get_jetveto_event(jets: JetArray, year: str):
 
     event_sel = ~(ak.any((jets.pt > 15) & (jets.jetidtightlepveto) & jet_veto, axis=1))
     return event_sel
+
+def correct_jetid(jets, jet_type: str, year: str):
+    evaluator = correctionlib.CorrectionSet.from_file(get_pog_json("jetid", year))
+
+    if jet_type == "AK8":
+        name_tight = "AK8PUPPI_Tight"
+        name_tightlv = "AK8PUPPI_TightLeptonVeto"
+    elif jet_type == "AK4":
+        name_tight = "AK4PUPPI_Tight"
+        name_tightlv = "AK4PUPPI_TightLeptonVeto"
+
+    flat_j = ak.flatten(jets)
+
+    def get_jetid(j, nj, ev_str):
+ 
+        eta    = ak_clip(j.eta, -4.7, 4.7)
+        chHEF  = ak_clip(j.chHEF, 0., 1.)
+        neHEF  = ak_clip(j.neHEF, 0., 1.)
+        chEmEF = ak_clip(j.chEmEF, 0., 1.)
+        neEmEF = ak_clip(j.neEmEF, 0., 1.)
+        muEF   = ak_clip(j.muEF, 0., 1.)
+        chMult = ak_clip(j.chMultiplicity, 0., 100.)
+        neMult = ak_clip(j.neMultiplicity, 0., 100.)
+        nConst = chMult + neMult
+
+        jetid = evaluator[ev_str].evaluate(eta, chHEF, neHEF, chEmEF, neEmEF, muEF, chMult, neMult, nConst)
+        return ak.unflatten(jetid, nj)
+
+    jets["jetidtight"] = ak.values_astype(get_jetid(flat_j, ak.num(jets), name_tight), bool)
+    jets["jetidtightlepveto"] = ak.values_astype(get_jetid(flat_j, ak.num(jets), name_tightlv), bool)
+
+    return jets

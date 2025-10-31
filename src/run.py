@@ -87,6 +87,7 @@ def run(year: str, fileset: dict, args: argparse.Namespace):
     p = categorizer(
         xsecs=xsecs,
         year=year,
+        nano_version=args.nano_version,
         save_skim=args.save_skim,
         skim_outpath="outparquet",
     )
@@ -206,6 +207,7 @@ if __name__ == "__main__":
         choices=[
             "v12",
             "v12v2_private",
+            "v14_private"
         ],
         help="NanoAOD version",
     )
