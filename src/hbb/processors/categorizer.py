@@ -33,6 +33,7 @@ from .objects import (
     good_photons,
     set_ak4jets,
     set_ak8jets,
+    tight_photons,
 )
 
 logger = logging.getLogger(__name__)
@@ -292,9 +293,10 @@ class categorizer(SkimmerABC):
         goodphotons = good_photons(events.Photon)
         nphotons = ak.num(goodphotons, axis=1)
         leadingphoton = ak.firsts(goodphotons)
+        ntightphotons = ak.num(tight_photons(events.Photon), axis=1)
 
         selection.add("onephoton", (nphotons == 1))
-        selection.add("atleastonephoton", (nphotons >= 1))
+        selection.add("atleastonephoton", (ntightphotons >= 1))
         selection.add("passphotonveto", (nphotons == 0))
 
         gen_variables = {}
@@ -409,6 +411,13 @@ class categorizer(SkimmerABC):
         nominal_weight = ak.ones_like(events.run) if isRealData else weights_dict["weight"]
         gen_weight = ak.ones_like(events.run) if isRealData else events.genWeight
 
+        egamma_trigger_booleans = {}
+        for t in self._egammatriggers[self._year]:
+            if t in events.HLT.fields:
+                egamma_trigger_booleans[t] = events.HLT[t]
+            else:
+                egamma_trigger_booleans[t] = ak.values_astype(ak.zeros_like(events.run), bool)
+
         output_array = None
         if self._save_skim:
             # define "flat" output array
@@ -447,6 +456,7 @@ class categorizer(SkimmerABC):
                 "weight": nominal_weight,
                 "genWeight": gen_weight,
                 **gen_variables,
+                **egamma_trigger_booleans,
             }
 
             parT_array = {
