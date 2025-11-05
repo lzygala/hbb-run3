@@ -313,12 +313,12 @@ def get_datasets():
                     "/JetMET1/Run2025E-PromptReco-v1/NANOAOD",
                 ],
                 "JetMET_Run2025F": [
-                    "/JetMET0/Run2025E-PromptReco-v2/NANOAOD",
-                    "/JetMET1/Run2025E-PromptReco-v2/NANOAOD",
+                    "/JetMET0/Run2025F-PromptReco-v2/NANOAOD",
+                    "/JetMET1/Run2025F-PromptReco-v2/NANOAOD",
                 ],
                 "JetMET_Run2025G": [
-                    "/JetMET0/Run2025E-PromptReco-v1/NANOAOD",
-                    "/JetMET1/Run2025E-PromptReco-v1/NANOAOD",
+                    "/JetMET0/Run2025G-PromptReco-v1/NANOAOD",
+                    "/JetMET1/Run2025G-PromptReco-v1/NANOAOD",
                 ],
             },
             "EGamma": {
