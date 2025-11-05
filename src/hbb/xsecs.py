@@ -124,6 +124,18 @@ xsecs["Zto2Q-4Jets_HT-400to600"] = 124.1
 xsecs["Zto2Q-4Jets_HT-600to800"] = 27.28
 xsecs["Zto2Q-4Jets_HT-800"] = 14.57
 
+#LO v15 binning
+xsecs["Wto2Q-3Jets_Bin-HT-100to400"] = 16120
+xsecs["Wto2Q-3Jets_Bin-HT-400to800"] = 0 #TODO
+xsecs["Wto2Q-3Jets_Bin-HT-800to1500"] = 0 #TODO
+xsecs["Wto2Q-3Jets_Bin-HT-1500to2500"] = 0 #TODO
+xsecs["Wto2Q-3Jets_Bin-HT-2500"] = 0 #TODO
+xsecs["Zto2Q-4Jets_Bin-HT-100to400"] = 6328
+xsecs["Zto2Q-4Jets_Bin-HT-400to800"] = 145.1
+xsecs["Zto2Q-4Jets_Bin-HT-800to1500"] = 0 #TODO
+xsecs["Zto2Q-4Jets_Bin-HT-1500to2500"] = 0 #TODO
+xsecs["Zto2Q-4Jets_Bin-HT-2500"] = 0 #TODO
+
 # These are bugged for 2022-2023 eras
 xsecs["Wto2Q-2Jets_PTQQ-100to200_1J"] = 1517.0 / 2.0
 xsecs["Wto2Q-2Jets_PTQQ-100to200_2J"] = 1757.0 / 2.0
@@ -156,6 +168,16 @@ xsecs["Zto2Nu-4Jets_HT-100to200"] = 273.7
 xsecs["Zto2Nu-4Jets_HT-200to400"] = 75.96
 xsecs["Zto2Nu-4Jets_HT-400to800"] = 13.19
 xsecs["Zto2Nu-4Jets_HT-800to1500"] = 1.364
+
+#NLO v15
+xsecs["Wto2Q-2Jets_Bin-PTQQ-100"] = 0   #TODO
+xsecs["Wto2Q-2Jets_Bin-PTQQ-200"] = 0   #TODO
+xsecs["Wto2Q-2Jets_Bin-PTQQ-400"] = 0   #TODO
+xsecs["Wto2Q-2Jets_Bin-PTQQ-600"] = 0   #TODO
+xsecs["Zto2Q-2Jets_Bin-PTQQ-100"] = 0   #TODO
+xsecs["Zto2Q-2Jets_Bin-PTQQ-200"] = 0   #TODO
+xsecs["Zto2Q-2Jets_Bin-PTQQ-400"] = 0   #TODO
+xsecs["Zto2Q-2Jets_Bin-PTQQ-600"] = 0   #TODO
 
 # NLO
 xsecs["WtoLNu-2Jets"] = 64481.58
