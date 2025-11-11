@@ -185,6 +185,7 @@ def load_samples(
 
                 events["weight_nonorm"] = events["weight"]
                 events["finalWeight"] = events["weight"] / sum_genweights
+                events["sum_genWeight"] = sum_genweights
             else:
                 # For data, we just keep the weight as is
                 events["weight_nonorm"] = events["weight"]
