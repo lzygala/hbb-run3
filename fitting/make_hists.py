@@ -11,7 +11,7 @@ import uproot
 
 from hbb import utils
 
-def fill_hists(outdict, events, region, reg_cfg, obs_cfg, qq_true):
+def fill_hists(outdict, events, region, reg_cfg, obs_cfg, qq_true, s):
 
     h = hist.Hist(hist.axis.Regular(obs_cfg["nbins"], obs_cfg["min"], obs_cfg["max"], name=obs_cfg["name"], label=obs_cfg["name"]))
 
@@ -21,9 +21,10 @@ def fill_hists(outdict, events, region, reg_cfg, obs_cfg, qq_true):
 
     for _process_name, data in events.items():
 
-        #TODO add in systematics functionality
-        weight_val = data["finalWeight"].astype(float)
-        s = "nominal"
+        if s == "nominal":
+            weight_val = data["finalWeight"].astype(float)
+        else:
+            weight_val = data[s].astype(float) / data["sum_genWeight"].astype(float)
 
         bin_br = data[str_bin_br]
         obs_br = data[obs_cfg["branch_name"]]
@@ -36,10 +37,10 @@ def fill_hists(outdict, events, region, reg_cfg, obs_cfg, qq_true):
         pre_selection = (obs_br > obs_cfg["min"]) & (obs_br < obs_cfg["max"])
 
         selection_dict = {
-            "pass_bb": pre_selection & (Txbbxcc  > 0.95) & (Txbb  > Txcc),
-            "pass_cc": pre_selection & (Txbbxcc  > 0.95) & (Txcc  > Txbb),
-            "fail": pre_selection & (Txbbxcc <= 0.95),
-            "pass": pre_selection & (Txbbxcc  > 0.95)
+            "pass_bb": pre_selection & (Txbbxcc  > 0.82) & (Txbb  > Txcc),
+            "pass_cc": pre_selection & (Txbbxcc  > 0.82) & (Txcc  > Txbb),
+            "fail": pre_selection & (Txbbxcc <= 0.82),
+            "pass": pre_selection & (Txbbxcc  > 0.82)
         }
 
         cut_bb = (genf == 3)
@@ -102,7 +103,28 @@ def main(args):
         "GenFlavor",
     ]
 
+    columns_systs = [
+        'ISRPartonShowerUp',
+        'ISRPartonShowerDown',
+        'FSRPartonShowerUp', 
+        'FSRPartonShowerDown', 
+        'aS_weightUp',
+        'aS_weightDown', 
+        'PDF_weightUp', 
+        'PDF_weightDown', 
+        'PDFaS_weightUp', 
+        'PDFaS_weightDown', 
+        'scalevar_7ptUp', 
+        'scalevar_7ptDown',
+        'scalevar_3ptUp',
+        'scalevar_3ptDown', 
+        'pileupUp',
+        'pileupDown', 
+    ]
+
     data_dirs = [Path(path_to_dir) / year]
+    if args.year == "Run3":
+        data_dirs = [Path(path_to_dir) / "2022", Path(path_to_dir) / "2022EE", Path(path_to_dir) / "2023", Path(path_to_dir) / "2023BPix"]
 
     out_path = f"results/{tag}/{year}"
     output_file = f"{out_path}/signalregion.root"
@@ -143,7 +165,7 @@ def main(args):
                     events = utils.load_samples(
                         data_dir,
                         {process: [dataset]},
-                        columns=columns,
+                        columns=columns if "data" in process else columns+columns_systs,
                         region=cfg["name"],
                         filters=filters
                     )
@@ -151,7 +173,11 @@ def main(args):
                     if not events:
                         continue
 
-                    fill_hists(out_hists, events, reg, cfg, obs_cfg, (process in samples_qq))
+                    fill_hists(out_hists, events, reg, cfg, obs_cfg, (process in samples_qq), "nominal")
+
+                    if "data" not in process:
+                        for syst in columns_systs:
+                            fill_hists(out_hists, events, reg, cfg, obs_cfg, (process in samples_qq), syst)
 
     for name, h in out_hists.items():
         fout[name] = h
@@ -165,7 +191,7 @@ if __name__ == "__main__":
         help="year",
         type=str,
         required=True,
-        choices=["2022", "2022EE", "2023", "2023BPix"],
+        choices=["2022", "2022EE", "2023", "2023BPix", "Run3"],
     )
     parser.add_argument(
         "--tag",
