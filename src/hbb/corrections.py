@@ -106,6 +106,76 @@ def add_pileup_weight(weights: Weights, year: str, nPU):
 
     weights.add("pileup", values["nominal"], values["up"], values["down"])
 
+def add_pdf_weight(weights, pdf_weights):
+
+    nom   = ak.ones_like(weights.weight())
+                               
+    arg = pdf_weights[:,1:-2]-(ak.ones_like(weights.weight())[:, None] * ak.Array(np.ones(100)))
+    summed = ak.sum(np.square(arg),axis=1)
+    pdf_unc = np.sqrt( (1./99.) * summed )
+    weights.add('PDF_weight', nom, pdf_unc + nom)
+
+    # alpha_S weights
+    as_unc = 0.5*(pdf_weights[:,102] - pdf_weights[:,101])
+    weights.add('aS_weight', nom, as_unc + nom)
+
+    # PDF + alpha_S weights
+    pdfas_unc = np.sqrt( np.square(pdf_unc) + np.square(as_unc) )
+    weights.add('PDFaS_weight', nom, pdfas_unc + nom) 
+
+def add_ps_weight(weights, ps_weights):
+    """
+    Parton Shower Weights (FSR and ISR)
+    """
+    nom = ak.ones_like(weights.weight())
+
+    up_isr = ak.ones_like(nom)
+    down_isr = ak.ones_like(nom)
+    up_fsr = ak.ones_like(nom)
+    down_fsr = ak.ones_like(nom)
+
+    if ak.num(ps_weights[0], axis=0) == 4:
+        up_isr = ps_weights[:, 0]  # ISR=2, FSR=1
+        down_isr = ps_weights[:, 2]  # ISR=0.5, FSR=1
+
+        up_fsr = ps_weights[:, 1]  # ISR=1, FSR=2
+        down_fsr = ps_weights[:, 3]  # ISR=1, FSR=0.5
+
+    elif ak.num(ps_weights[0], axis=0) > 1:
+        print("PS weight vector has length ", ak.num(ps_weights[0]))
+
+    weights.add("ISRPartonShower", nom, up_isr, down_isr)
+    weights.add("FSRPartonShower", nom, up_fsr, down_fsr)
+
+def add_scalevar_7pt(weights,var_weights):
+
+    nom   = ak.ones_like(weights.weight())
+    up    = ak.ones_like(nom)
+    down  = ak.ones_like(nom)
+ 
+    try:
+        selected = var_weights[:, [0, 1, 3, 5, 7, 8]]
+        up = ak.max(selected, axis=1)
+        down = ak.min(selected, axis=1)
+    except Exception as e:
+        print("Scale variation structure unexpected:", e)
+
+    weights.add('scalevar_7pt', nom, up, down)
+
+def add_scalevar_3pt(weights,var_weights):
+
+    nom   = ak.ones_like(weights.weight())
+    up    = ak.ones_like(nom)
+    down  = ak.ones_like(nom)
+
+    try:
+        selected = var_weights[:, [0, 8]]
+        up = ak.max(selected, axis=1)
+        down = ak.min(selected, axis=1)
+    except Exception as e:
+        print("Scale variation structure unexpected:", e)
+
+    weights.add('scalevar_3pt', nom, up, down)
 
 # Jet Veto Maps
 # the JERC group recommends ALL analyses use these maps, as the JECs are derived excluding these zones.

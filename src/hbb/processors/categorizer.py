@@ -13,6 +13,10 @@ from hist.dask import Hist
 
 from hbb.corrections import (
     add_pileup_weight,
+    add_ps_weight,
+    add_scalevar_3pt,
+    add_scalevar_7pt,
+    add_pdf_weight,
     get_jetveto_event,
     lumiMasks,
 )
@@ -104,11 +108,6 @@ class categorizer(SkimmerABC):
         }
 
     def process(self, events):
-        # fatjets = events.FatJet
-        # jets = events.Jet
-        # met = events.MET
-        # shifts = [({"Jet": jets, "FatJet": fatjets, "MET": met}, None)]
-        # TODO return processor.accumulate(self.process_shift(update(events, collections), name) for collections, name in shifts)
         return self.process_shift(events, None)
 
     def add_weights(
@@ -121,6 +120,18 @@ class categorizer(SkimmerABC):
         weights.add("genweight", events.genWeight)
 
         add_pileup_weight(weights, self._year, events.Pileup.nPU)
+        add_ps_weight(weights, events.PSWeight)
+
+        if "LHEPdfWeight" in events.fields:
+            add_pdf_weight(weights,events.LHEPdfWeight)
+        else:
+            add_pdf_weight(weights,[])
+        if "LHEScaleWeight" in events.fields:
+            add_scalevar_7pt(weights, events.LHEScaleWeight)
+            add_scalevar_3pt(weights, events.LHEScaleWeight)
+        else:
+            add_scalevar_7pt(weights,[])
+            add_scalevar_3pt(weights,[])
 
         logger.debug("weights", extra=weights._weights.keys())
         # logger.debug(f"Weight statistics: {weights.weightStatistics!r}")
@@ -402,11 +413,6 @@ class categorizer(SkimmerABC):
 
         tic = time.time()
 
-        if shift_name is None:
-            systematics = [None] + list(weights.variations)
-        else:
-            systematics = [shift_name]
-
         nominal_weight = ak.ones_like(events.run) if isRealData else weights_dict["weight"]
         gen_weight = ak.ones_like(events.run) if isRealData else events.genWeight
 
@@ -575,10 +581,10 @@ class categorizer(SkimmerABC):
                 if region == "signal-all":
                     skim(region, ak.zip({**output_array, **output_array_extra}, depth_limit=1))
                 else:
-                    skim(region, ak.zip(output_array, depth_limit=1))
-            for systematic in systematics:
-                if isRealData and systematic is not None:
-                    continue
+                    if isRealData:
+                        skim(region, ak.zip(output_array, depth_limit=1))
+                    else:
+                        skim(region, ak.zip({**output_array, **weights_dict}, depth_limit=1))
 
         toc = time.time()
         output["filltime"] = toc - tic
