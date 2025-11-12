@@ -48,6 +48,7 @@ years = {
     "2022EE": "2022_Summer22EE",
     "2023": "2023_Summer23",
     "2023BPix": "2023_Summer23BPix",
+    "2024": "2024_Summer24",
 }
 
 
@@ -81,6 +82,7 @@ lumiMasks = {
     "2022EE": build_lumimask("Cert_Collisions2022_355100_362760_Golden.json"),
     "2023": build_lumimask("Cert_Collisions2023_366442_370790_Golden.json"),
     "2023BPix": build_lumimask("Cert_Collisions2023_366442_370790_Golden.json"),
+    "2024": build_lumimask("Cert_Collisions2024_378981_386951_Golden.json"),
 }
 
 
@@ -98,6 +100,7 @@ def add_pileup_weight(weights: Weights, year: str, nPU):
         "2022EE": "Collisions2022_359022_362760_eraEFG_GoldenJson",
         "2023": "Collisions2023_366403_369802_eraBC_GoldenJson",
         "2023BPix": "Collisions2023_369803_370790_eraD_GoldenJson",
+        #"2024": "", Not yet derived by pog
     }[year]
     # evaluate and clip up to 4 to avoid large weights
     values["nominal"] = ak_clip(cset[corr].evaluate(nPU, "nominal"), 0, 4)
@@ -215,6 +218,7 @@ def get_jetveto_event(jets: JetArray, year: str):
         "2022EE": "Summer22EE_23Sep2023_RunEFG_V1",
         "2023": "Summer23Prompt23_RunC_V1",
         "2023BPix": "Summer23BPixPrompt23_RunD_V1",
+        "2024": "Summer24Prompt24",
     }[year]
 
     jet_veto = get_veto(j, nj, corr_str) > 0
