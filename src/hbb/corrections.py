@@ -294,13 +294,13 @@ def apply_jerc(jets, jet_type: str, year: str, runkey: str):
     files = []
     if "mc" in runkey:
         jer_path = f"{jerc_path}/{jer_eras[runkey]}"
-        for jec, end in jec_mc.items():
-            files.append(f"{jec_path}/{jec_eras[runkey]}_{jec}_{jet_key}{end}")
-        for jer, end in jer_mc.items():
-            files.append(f"{jer_path}/{jer_eras[runkey]}_{jer}_{jet_key}{end}")
+        for jec, ps in jec_mc.items():
+            files.append(f"{jec_path}/{jec_eras[runkey]}_{jec}_{jet_key}{ps}")
+        for jer, ps in jer_mc.items():
+            files.append(f"{jer_path}/{jer_eras[runkey]}_{jer}_{jet_key}{ps}")
     else:
-        for jec, end in jec_data.items():
-            files.append(f"{jec_path}/{jec_eras[runkey]}_{jec}_{jet_key}{end}")
+        for jec, ps in jec_data.items():
+            files.append(f"{jec_path}/{jec_eras[runkey]}_{jec}_{jet_key}{ps}")
 
     ext = extractor()
     with contextlib.ExitStack() as stack:
