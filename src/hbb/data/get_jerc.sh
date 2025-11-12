@@ -96,3 +96,5 @@ for folder in "$DEST"/*_JR*; do
         done
     fi
 done
+
+find "$DEST" -type f -exec gzip -f {} \;
