@@ -65,6 +65,7 @@ class categorizer(SkimmerABC):
         self,
         year="2022",
         nano_version="v12",
+        sample="",
         xsecs: dict = None,
         systematics=False,
         save_skim=False,
@@ -122,16 +123,11 @@ class categorizer(SkimmerABC):
         add_pileup_weight(weights, self._year, events.Pileup.nPU)
         add_ps_weight(weights, events.PSWeight)
 
-        if "LHEPdfWeight" in events.fields:
-            add_pdf_weight(weights,events.LHEPdfWeight)
-        else:
-            add_pdf_weight(weights,[])
-        if "LHEScaleWeight" in events.fields:
-            add_scalevar_7pt(weights, events.LHEScaleWeight)
-            add_scalevar_3pt(weights, events.LHEScaleWeight)
-        else:
-            add_scalevar_7pt(weights,[])
-            add_scalevar_3pt(weights,[])
+        #Easier to save nominal weights for rest of MC with all of the syst names for grabbing columns in post-processing
+        flag_syst = ("Hto2B" in dataset) or ("Hto2C" in dataset) or ("VBFZto" in dataset)
+        add_pdf_weight(weights, getattr(events, "LHEPdfWeight", None) if flag_syst else None)
+        add_scalevar_7pt(weights, getattr(events, "LHEScaleWeight", None) if flag_syst else None)
+        add_scalevar_3pt(weights, getattr(events, "LHEScaleWeight", None) if flag_syst else None)
 
         logger.debug("weights", extra=weights._weights.keys())
         # logger.debug(f"Weight statistics: {weights.weightStatistics!r}")

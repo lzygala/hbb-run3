@@ -108,7 +108,12 @@ def add_pileup_weight(weights: Weights, year: str, nPU):
 
 def add_pdf_weight(weights, pdf_weights):
 
-    nom   = ak.ones_like(weights.weight())
+    nom = ak.ones_like(weights.weight())
+    if pdf_weights is None:
+        weights.add('PDF_weight', nom)
+        weights.add('aS_weight', nom)
+        weights.add('PDFaS_weight', nom)
+        return
                                
     arg = pdf_weights[:,1:-2]-(ak.ones_like(weights.weight())[:, None] * ak.Array(np.ones(100)))
     summed = ak.sum(np.square(arg),axis=1)
@@ -147,11 +152,15 @@ def add_ps_weight(weights, ps_weights):
     weights.add("ISRPartonShower", nom, up_isr, down_isr)
     weights.add("FSRPartonShower", nom, up_fsr, down_fsr)
 
-def add_scalevar_7pt(weights,var_weights):
+def add_scalevar_7pt(weights, var_weights):
 
     nom   = ak.ones_like(weights.weight())
     up    = ak.ones_like(nom)
     down  = ak.ones_like(nom)
+
+    if var_weights is None:
+        weights.add('scalevar_7pt', nom)
+        return
  
     try:
         selected = var_weights[:, [0, 1, 3, 5, 7, 8]]
@@ -167,6 +176,10 @@ def add_scalevar_3pt(weights,var_weights):
     nom   = ak.ones_like(weights.weight())
     up    = ak.ones_like(nom)
     down  = ak.ones_like(nom)
+
+    if var_weights is None:
+        weights.add('scalevar_3pt', nom)
+        return
 
     try:
         selected = var_weights[:, [0, 8]]
