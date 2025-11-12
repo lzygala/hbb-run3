@@ -10,13 +10,19 @@ from __future__ import annotations
 import pathlib
 from pathlib import Path
 
+import contextlib
+
 import awkward as ak
 import dask_awkward as dak
 import numpy as np
 import correctionlib
 from coffea.analysis_tools import Weights
 from coffea.nanoevents.methods import vector
-from coffea.nanoevents.methods.nanoaod import JetArray, FatJetArray
+from coffea.nanoevents.methods.nanoaod import JetArray
+from coffea.jetmet_tools import CorrectedJetsFactory, CorrectedMETFactory, JECStack
+from coffea.lookup_tools import extractor
+
+from hbb.jerc_eras import jec_eras,jer_eras, jec_mc, jer_mc, jec_data, fatjet_jerc_keys, jet_jerc_keys
 
 ak.behavior.update(vector.behavior)
 package_path = str(pathlib.Path(__file__).parent.parent.resolve())
@@ -257,3 +263,67 @@ def correct_jetid(jets, jet_type: str, year: str):
     jets["jetidtightlepveto"] = ak.values_astype(get_jetid(flat_j, ak.num(jets), name_tightlv), bool)
 
     return jets
+
+jec_name_map = {
+    "JetPt": "pt",
+    "JetMass": "mass",
+    "JetEta": "eta",
+    "JetA": "area",
+    "ptGenJet": "pt_gen",
+    "ptRaw": "pt_raw",
+    "massRaw": "mass_raw",
+    "Rho": "event_rho",
+    "METpt": "pt",
+    "METphi": "phi",
+    "JetPhi": "phi",
+    "UnClusteredEnergyDeltaX": "MetUnclustEnUpDeltaX",
+    "UnClusteredEnergyDeltaY": "MetUnclustEnUpDeltaY",
+}
+
+def apply_jerc(jets, jet_type: str, year: str, runkey: str):
+
+    jerc_path =f"{package_path}/hbb/data/jerc"
+    jec_path = f"{jerc_path}/{jec_eras[runkey]}"
+
+    if jet_type == "AK8":
+        jet_key = fatjet_jerc_keys[year]
+    elif jet_type == "AK4":
+        jet_key = jet_jerc_keys[year]
+
+    #build filelist
+    files = []
+    if "mc" in runkey:
+        jer_path = f"{jerc_path}/{jer_eras[runkey]}"
+        for jec, end in jec_mc.items():
+            files.append(f"{jec_path}/{jec_eras[runkey]}_{jec}_{jet_key}{end}")
+        for jer, end in jer_mc.items():
+            files.append(f"{jer_path}/{jer_eras[runkey]}_{jer}_{jet_key}{end}")
+    else:
+        for jec, end in jec_data.items():
+            files.append(f"{jec_path}/{jec_eras[runkey]}_{jec}_{jet_key}{end}")
+
+    ext = extractor()
+    with contextlib.ExitStack() as stack:
+        real_files = [stack.enter_context(Path(f)) for f in files]
+        ext.add_weight_sets([f"* * {file}" for file in real_files])
+        ext.finalize()
+
+    jec_stack = JECStack(ext.make_evaluator())
+    jet_factory = CorrectedJetsFactory(jec_name_map, jec_stack)
+
+    corrected_jets = jet_factory.build(jets)
+    return corrected_jets
+
+def correct_met(met, jets):
+
+    dX_up = met.ptUnclusteredUp * np.cos(met.phiUnclusteredUp)
+    dY_up = met.ptUnclusteredUp * np.sin(met.phiUnclusteredUp)
+    dX_nom = met.pt * np.cos(met.phi)
+    dY_nom = met.pt * np.sin(met.phi)
+    met["MetUnclustEnUpDeltaX"] = dX_up - dX_nom
+    met["MetUnclustEnUpDeltaY"] = dY_up - dY_nom
+
+    met_factory = CorrectedMETFactory(jec_name_map)
+    corrected_met = met_factory.build(met, jets)
+
+    return corrected_met

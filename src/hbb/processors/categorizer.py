@@ -11,6 +11,8 @@ import numpy as np
 from coffea.analysis_tools import PackedSelection, Weights
 from hist.dask import Hist
 
+from hbb.jerc_eras import run_map
+
 from hbb.corrections import (
     add_pileup_weight,
     add_ps_weight,
@@ -19,6 +21,8 @@ from hbb.corrections import (
     add_pdf_weight,
     get_jetveto_event,
     lumiMasks,
+    correct_met,
+    apply_jerc
 )
 from hbb.processors.SkimmerABC import SkimmerABC
 
@@ -64,8 +68,7 @@ class categorizer(SkimmerABC):
     def __init__(
         self,
         year="2022",
-        nano_version="v12",
-        sample="",
+        nano_version="v12",\
         xsecs: dict = None,
         systematics=False,
         save_skim=False,
@@ -200,9 +203,22 @@ class categorizer(SkimmerABC):
         selection.add("metfilter", metfilter)
         del metfilter
 
-        fatjets = set_ak8jets(events.FatJet, self._year, self._nano_version)
+        mc_run = "mc"
+        if isRealData:
+            for keys, value in run_map.items():
+                if any(k in dataset for k in keys):
+                    mc_run = value
+                    break
+        jec_key = f"{self._year}_{mc_run}"
+
+        fatjets = set_ak8jets(events.FatJet, self._year, self._nano_version, events.Rho.fixedGridRhoFastjetAll)
+        jets = set_ak4jets(events.Jet, self._year, self._nano_version, events.Rho.fixedGridRhoFastjetAll)
+        
+        jets = apply_jerc(jets, "AK4", self._year, jec_key)
+        fatjets = apply_jerc(fatjets, "AK8", self._year, jec_key)
+        met = correct_met(events.PuppiMET, jets)  # PuppiMET Recommended for Run3
+
         goodfatjets = good_ak8jets(fatjets)
-        jets = set_ak4jets(events.Jet, self._year, self._nano_version)
         goodjets = good_ak4jets(jets)
 
         cut_jetveto = get_jetveto_event(jets, self._year)
@@ -263,7 +279,6 @@ class categorizer(SkimmerABC):
             ak.max(ak4_outside_ak8.btagPNetB, axis=1, mask_identity=False) > btag_cut,
         )
 
-        met = events.PuppiMET  # PuppiMET Recommended for Run3
         selection.add("lowmet", met.pt < 140.0)
 
         # VBF specific variables
