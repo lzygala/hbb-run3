@@ -5,7 +5,13 @@ run_map = {
     ("Run2022G",): "Run2022G",
     ("Run2023Cv1", "Run2023Cv2", "Run2023Cv3"): "Run2023Cv123",
     ("Run2023Cv4",): "Run2023Cv4",
-    ("Run2024",): "Run2024",
+    ("Run2024C",): "Run2024C",
+    ("Run2024D",): "Run2024D",
+    ("Run2024E",): "Run2024E",
+    ("Run2024F",): "Run2024F",
+    ("Run2024G",): "Run2024G",
+    ("Run2024H",): "Run2024H",
+    ("Run2024I",): "Run2024I",
 }
 
 fatjet_jerc_keys = {
@@ -53,7 +59,13 @@ jec_eras = {
     "2023_Run2023Cv123": "Summer23Prompt23RunCv123_V3_DATA",
     "2023_Run2023Cv4": "Summer23Prompt23_RunCv4_V3_DATA",
     "2023BPix_Run2023D": "Summer23BPixPrompt23_RunD_V3_DATA",
-    "2024_Run2024": "Summer24Prompt24_RunCnib1_V1_DATA",
+    "2024_Run2024C": "Summer24Prompt24_RunCnib1_V1_DATA",
+    "2024_Run2024D": "Summer24Prompt24_RunDnib1_V1_DATA",
+    "2024_Run2024E": "Summer24Prompt24_RunEnib1_V1_DATA",
+    "2024_Run2024F": "Summer24Prompt24_RunFnib1_V1_DATA",
+    "2024_Run2024G": "Summer24Prompt24_RunGnib1_V1_DATA",
+    "2024_Run2024H": "Summer24Prompt24_RunHnib1_V1_DATA",
+    "2024_Run2024I": "Summer24Prompt24_RunInib1_V1_DATA",
 }
 
 jer_eras = {

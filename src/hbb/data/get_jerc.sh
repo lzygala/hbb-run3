@@ -19,6 +19,12 @@ jec_folders=(
   Summer23Prompt23_RunCv4_V3_DATA
   Summer23BPixPrompt23_RunD_V3_DATA
   Summer24Prompt24_RunCnib1_V1_DATA
+  Summer24Prompt24_RunDnib1_V1_DATA
+  Summer24Prompt24_RunEnib1_V1_DATA
+  Summer24Prompt24_RunFnib1_V1_DATA
+  Summer24Prompt24_RunGnib1_V1_DATA
+  Summer24Prompt24_RunHnib1_V1_DATA
+  Summer24Prompt24_RunInib1_V1_DATA
 )
 
 jer_folders=(
@@ -97,4 +103,4 @@ for folder in "$DEST"/*_JR*; do
     fi
 done
 
-find "$DEST" -type f -exec gzip -f {} \;
+find "$DEST" -type f -name "*.txt" -exec gzip -f {} \;
