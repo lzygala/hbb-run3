@@ -10,8 +10,9 @@ import dask_awkward as dak
 import numpy as np
 from coffea.analysis_tools import PackedSelection, Weights
 from hist.dask import Hist
+import dask
 
-from hbb.jerc_eras import run_map
+from hbb.jerc_eras import run_map, variation_map
 
 from hbb.corrections import (
     add_pileup_weight,
@@ -112,7 +113,12 @@ class categorizer(SkimmerABC):
         }
 
     def process(self, events):
-        return self.process_shift(events, None)
+        if not self._save_skim:
+            return self.process_shift(events, None)
+
+        jerc_variations = [None] + [f"{var}_{dir}" for var in variation_map for dir in ["Up", "Down"]]
+        return [self.process_shift(events, var) for var in jerc_variations]
+    
 
     def add_weights(
         self,
@@ -214,14 +220,25 @@ class categorizer(SkimmerABC):
         fatjets = set_ak8jets(events.FatJet, self._year, self._nano_version, events.Rho.fixedGridRhoFastjetAll)
         jets = set_ak4jets(events.Jet, self._year, self._nano_version, events.Rho.fixedGridRhoFastjetAll)
         
-        jets = apply_jerc(jets, "AK4", self._year, jec_key)
-        fatjets = apply_jerc(fatjets, "AK8", self._year, jec_key)
-        met = correct_met(events.PuppiMET, jets)  # PuppiMET Recommended for Run3
+        jets_jerc = apply_jerc(jets, "AK4", self._year, jec_key)
+        fatjets_jerc = apply_jerc(fatjets, "AK8", self._year, jec_key)
+        met_jerc = correct_met(events.PuppiMET, jets)  # PuppiMET Recommended for Run3
 
-        goodfatjets = good_ak8jets(fatjets)
-        goodjets = good_ak4jets(jets)
+        if shift_name:
+            var, direction = shift_name.split("_")
+            attr = variation_map[var]
 
-        cut_jetveto = get_jetveto_event(jets, self._year)
+            if var in ("JES", "JER"):
+                jets_jerc  = getattr(getattr(jets, attr), direction.lower())
+                fatjets_jerc  = getattr(getattr(fatjets, attr), direction.lower())
+                met_jerc  = getattr(getattr(met, attr), direction.lower())
+            elif var == "UES":
+                met_jerc  = getattr(getattr(met, attr), direction.lower())
+
+        goodfatjets = good_ak8jets(fatjets_jerc)
+        goodjets = good_ak4jets(jets_jerc)
+
+        cut_jetveto = get_jetveto_event(jets_jerc, self._year)
         selection.add("ak4jetveto", cut_jetveto)
 
         selection.add("2FJ", ak.num(goodfatjets, axis=1) == 2)
@@ -279,7 +296,7 @@ class categorizer(SkimmerABC):
             ak.max(ak4_outside_ak8.btagPNetB, axis=1, mask_identity=False) > btag_cut,
         )
 
-        selection.add("lowmet", met.pt < 140.0)
+        selection.add("lowmet", met_jerc.pt < 140.0)
 
         # VBF specific variables
         jet1_away = ak.firsts(ak4_outside_ak8[:, 0:1])
@@ -436,7 +453,15 @@ class categorizer(SkimmerABC):
 
         output_array = None
         if self._save_skim:
-            # define "flat" output array
+
+            
+            def copy_values_partition(part):
+                # Perform a no-op operation that preserves flat values
+                return part * 1  # or part + 0
+
+            def copy_dask_ak_array(array):
+                return dak.map_partitions(copy_values_partition, array)
+
             output_array = {
                 "GenBoson_pt": genBosonPt,
                 "GenFlavor": genflavor,
@@ -470,11 +495,25 @@ class categorizer(SkimmerABC):
                 "Photon0_pt": leadingphoton.pt,
                 "Photon0_phi": leadingphoton.phi,
                 "Photon0_eta": leadingphoton.eta,
-                "MET": met,
+                "MET": met_jerc,
                 "weight": nominal_weight,
                 "genWeight": gen_weight,
                 **gen_variables,
                 **egamma_trigger_booleans,
+            }
+
+            jerc_var_array = {
+                "GenBoson_pt": genBosonPt,
+                "GenFlavor": genflavor,
+                "FatJet0_pt": candidatejet.pt,
+                "FatJet0_msd": candidatejet.msd,
+                "FatJet0_msdmatched": msd_matched,
+                "FatJet0_pnetTXbb": candidatejet.particleNet_XbbVsQCD,
+                "FatJet0_pnetTXcc": candidatejet.particleNet_XccVsQCD,
+                "FatJet0_pnetXbbXcc": candidatejet.pnetXbbXcc,
+                "VBFPair_mjj": vbf_mjj,
+                "weight": nominal_weight,
+                "genWeight": gen_weight,
             }
 
             if "v12" not in self._nano_version:
@@ -501,6 +540,14 @@ class categorizer(SkimmerABC):
                     "FatJet1_ParTmassX2p": candidatejet.ParTmassX2p,
                 }
                 output_array = {**output_array, **parT_array}
+
+                jerc_var_array_parT = {
+                    "FatJet0_ParTPXbbVsQCD": candidatejet.ParTPXbbVsQCD,
+                    "FatJet0_ParTPXccVsQCD": candidatejet.ParTPXccVsQCD,
+                    "FatJet0_ParTPXbbXcc": candidatejet.ParTPXbbXcc,
+                }
+                jerc_var_array = {**jerc_var_array, **jerc_var_array_parT}
+
 
             # extra variables for big array
             output_array_extra = {
@@ -586,16 +633,43 @@ class categorizer(SkimmerABC):
                     weight=nominal_weight[cut],
                 )
 
-        for region in regions:
-            if self._save_skim:
-                print(region)
-                if region == "signal-all":
-                    skim(region, ak.zip({**output_array, **output_array_extra}, depth_limit=1))
-                else:
-                    if isRealData:
-                        skim(region, ak.zip(output_array, depth_limit=1))
+        def skim_jer(region, jer_var, output_array):
+            selections = regions[region]
+            cut = selection.all(*selections)
+
+            if "root:" in self._skim_outpath:
+                skim_path = f"{self._skim_outpath}/{self._year}/{dataset}/ {jer_var} /{region}"
+            else:
+                skim_path = Path(self._skim_outpath) / self._year / dataset / jer_var / region
+                skim_path.mkdir(parents=True, exist_ok=True)
+            print("Saving skim to: ", skim_path)
+
+            # possible TODO: add systematic weights?
+            output["skim"][region] = dak.to_parquet(
+                output_array[cut],
+                str(skim_path),
+                compute=False,
+            )
+
+        if shift_name:
+            for region in regions:
+                if self._save_skim:
+                    if region != "signal-all":
+                        if isRealData:
+                            skim_jer(region, shift_name, ak.zip(jerc_var_array, depth_limit=1))
+                        else:
+                            skim_jer(region, shift_name, ak.zip({**jerc_var_array, **weights_dict}, depth_limit=1))
+        else:
+            for region in regions:
+                if self._save_skim:
+                    print(region)
+                    if region == "signal-all":
+                        skim(region, ak.zip({**output_array, **output_array_extra}, depth_limit=1))
                     else:
-                        skim(region, ak.zip({**output_array, **weights_dict}, depth_limit=1))
+                        if isRealData:
+                            skim(region, ak.zip(output_array, depth_limit=1))
+                        else:
+                            skim(region, ak.zip({**output_array, **weights_dict}, depth_limit=1))
 
         toc = time.time()
         output["filltime"] = toc - tic

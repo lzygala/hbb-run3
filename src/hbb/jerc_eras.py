@@ -49,8 +49,8 @@ jer_mc = {
 jec_eras = {
     "2022_mc": "Summer22_22Sep2023_V3_MC",
     "2022EE_mc": "Summer22EE_22Sep2023_V3_MC",
-    "2023_mc": "Summer23Prompt23_V1_MC",
-    "2023BPix_mc": "Summer23BPixPrompt23_V1_MC",
+    "2023_mc": "Summer23Prompt23_V3_MC",
+    "2023BPix_mc": "Summer23BPixPrompt23_V3_MC",
     "2024_mc": "Summer24Prompt24_V1_MC",
     "2022_Run2022CD": "Summer22_22Sep2023_RunCD_V3_DATA",
     "2022EE_Run2022E": "Summer22EE_22Sep2023_RunE_V3_DATA",
@@ -74,4 +74,10 @@ jer_eras = {
     "2023_mc": "Summer23Prompt23RunCv1234_JRV1_MC",
     "2023BPix_mc": "Summer23BPixPrompt23RunD_JRV1_MC",
     "2024_mc": "Summer23BPixPrompt23RunD_JRV1_MC",
+}
+
+variation_map = {
+    "JES": "JES_jes",
+    "JER": "JER",
+    "UES": "MET_UnclusteredEnergy",
 }
