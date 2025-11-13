@@ -454,14 +454,6 @@ class categorizer(SkimmerABC):
         output_array = None
         if self._save_skim:
 
-            
-            def copy_values_partition(part):
-                # Perform a no-op operation that preserves flat values
-                return part * 1  # or part + 0
-
-            def copy_dask_ak_array(array):
-                return dak.map_partitions(copy_values_partition, array)
-
             output_array = {
                 "GenBoson_pt": genBosonPt,
                 "GenFlavor": genflavor,
