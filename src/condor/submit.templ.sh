@@ -50,16 +50,18 @@ xrdcp -f *.pkl "${t2_prefixes}/${outdir}/pickles/out_${jobnum}.pkl"
 # 2. Next, handle the combined parquet files
 for file in *.parquet; do
     # Extract the region name from the local filename (e.g., gets "control-tt" from "control-tt.parquet")
-    region_name=$$(basename "$${file}" ".parquet")
+    base_file=$$(basename "$${file}" ".parquet")
+    region_name="$${base_file##*_}"
+    jer_name="$${base_file%_*}"
 
     # Create the region-specific subdirectory on EOS
-    xrdfs ${t2_prefixes} mkdir -p "/${outdir}/parquet/$${region_name}"
+    xrdfs ${t2_prefixes} mkdir -p "/${outdir}/$${jer_name}/$${region_name}"
 
     # Define the final filename using the job number for uniqueness
     final_filename="part${jobnum}.parquet"
 
     # Copy the file to its final, nested destination with the new name
-    xrdcp -f "$$file" "${t2_prefixes}/${outdir}/parquet/$${region_name}/$${final_filename}"
+    xrdcp -f "$$file" "${t2_prefixes}/${outdir}/$${jer_name}/$${region_name}/$${final_filename}"
 done
 
 
