@@ -219,21 +219,31 @@ class categorizer(SkimmerABC):
 
         fatjets = set_ak8jets(events.FatJet, self._year, self._nano_version, events.Rho.fixedGridRhoFastjetAll)
         jets = set_ak4jets(events.Jet, self._year, self._nano_version, events.Rho.fixedGridRhoFastjetAll)
+
+        if self._nano_version == "v14_private":
+            #subjets in PFNano reprocessing break the fatjet jercs for whatever reason
+            keep_fields = [f for f in fatjets.fields if (('nConstituents' not in f) and ("IdxG" not in f) and ("Idx1G" not in f) and ("Idx2G" not in f))]
+
+            fatjets= ak.zip(
+                {f: fatjets[f] for f in keep_fields },
+                with_name="FatJet",
+                behavior=fatjets.behavior
+            )
         
         jets_jerc = apply_jerc(jets, "AK4", self._year, jec_key)
         fatjets_jerc = apply_jerc(fatjets, "AK8", self._year, jec_key)
-        met_jerc = correct_met(events.PuppiMET, jets)  # PuppiMET Recommended for Run3
+        met_jerc = correct_met(events.PuppiMET, jets_jerc)  # PuppiMET Recommended for Run3
 
         if shift_name:
             var, direction = shift_name.split("_")
             attr = variation_map[var]
 
             if var in ("JES", "JER"):
-                jets_jerc  = getattr(getattr(jets, attr), direction.lower())
-                fatjets_jerc  = getattr(getattr(fatjets, attr), direction.lower())
-                met_jerc  = getattr(getattr(met, attr), direction.lower())
+                jets_jerc  = getattr(getattr(jets_jerc, attr), direction.lower())
+                fatjets_jerc  = getattr(getattr(fatjets_jerc, attr), direction.lower())
+                met_jerc  = getattr(getattr(met_jerc, attr), direction.lower())
             elif var == "UES":
-                met_jerc  = getattr(getattr(met, attr), direction.lower())
+                met_jerc  = getattr(getattr(met_jerc, attr), direction.lower())
 
         goodfatjets = good_ak8jets(fatjets_jerc)
         goodjets = good_ak4jets(jets_jerc)
