@@ -114,10 +114,10 @@ class categorizer(SkimmerABC):
 
     def process(self, events):
         if not self._save_skim:
-            return self.process_shift(events, None)
+            return {"nominal": self.process_shift(events, "nominal")}
 
-        jerc_variations = [None] + [f"{var}_{dir}" for var in variation_map for dir in ["Up", "Down"]]
-        return [self.process_shift(events, var) for var in jerc_variations]
+        jerc_variations = ["nominal"] + [f"{var}_{dir}" for var in variation_map for dir in ["Up", "Down"]]
+        return {var: self.process_shift(events, var) for var in jerc_variations}
     
 
     def add_weights(
@@ -173,7 +173,7 @@ class categorizer(SkimmerABC):
         selection = PackedSelection()
         output = self.make_output()
         weights = Weights(None, storeIndividual=True)
-        if shift_name is None and not isRealData:
+        if shift_name is "nominal" and not isRealData:
             output["sumw"][dataset] = ak.sum(events.genWeight)
 
         trigger = ak.values_astype(ak.zeros_like(events.run), bool)
@@ -230,25 +230,25 @@ class categorizer(SkimmerABC):
                 behavior=fatjets.behavior
             )
         
-        jets_jerc = apply_jerc(jets, "AK4", self._year, jec_key)
-        fatjets_jerc = apply_jerc(fatjets, "AK8", self._year, jec_key)
-        met_jerc = correct_met(events.PuppiMET, jets_jerc)  # PuppiMET Recommended for Run3
+        jets = apply_jerc(jets, "AK4", self._year, jec_key)
+        fatjets = apply_jerc(fatjets, "AK8", self._year, jec_key)
+        met = correct_met(events.PuppiMET, jets)  # PuppiMET Recommended for Run3
 
-        if shift_name:
+        if not shift_name == "nominal":
             var, direction = shift_name.split("_")
             attr = variation_map[var]
 
             if var in ("JES", "JER"):
-                jets_jerc  = getattr(getattr(jets_jerc, attr), direction.lower())
-                fatjets_jerc  = getattr(getattr(fatjets_jerc, attr), direction.lower())
-                met_jerc  = getattr(getattr(met_jerc, attr), direction.lower())
+                jets  = getattr(getattr(jets, attr), direction.lower())
+                fatjets  = getattr(getattr(fatjets, attr), direction.lower())
+                met  = getattr(getattr(met, attr), direction.lower())
             elif var == "UES":
-                met_jerc  = getattr(getattr(met_jerc, attr), direction.lower())
+                met  = getattr(getattr(met, attr), direction.lower())
 
-        goodfatjets = good_ak8jets(fatjets_jerc)
-        goodjets = good_ak4jets(jets_jerc)
+        goodfatjets = good_ak8jets(fatjets)
+        goodjets = good_ak4jets(jets)
 
-        cut_jetveto = get_jetveto_event(jets_jerc, self._year)
+        cut_jetveto = get_jetveto_event(jets, self._year)
         selection.add("ak4jetveto", cut_jetveto)
 
         selection.add("2FJ", ak.num(goodfatjets, axis=1) == 2)
@@ -306,7 +306,7 @@ class categorizer(SkimmerABC):
             ak.max(ak4_outside_ak8.btagPNetB, axis=1, mask_identity=False) > btag_cut,
         )
 
-        selection.add("lowmet", met_jerc.pt < 140.0)
+        selection.add("lowmet", met.pt < 140.0)
 
         # VBF specific variables
         jet1_away = ak.firsts(ak4_outside_ak8[:, 0:1])
@@ -497,7 +497,7 @@ class categorizer(SkimmerABC):
                 "Photon0_pt": leadingphoton.pt,
                 "Photon0_phi": leadingphoton.phi,
                 "Photon0_eta": leadingphoton.eta,
-                "MET": met_jerc,
+                "MET": met.pt,
                 "weight": nominal_weight,
                 "genWeight": gen_weight,
                 **gen_variables,
@@ -602,69 +602,42 @@ class categorizer(SkimmerABC):
             # print(output_array[cut].compute())
 
             if "root:" in self._skim_outpath:
-                skim_path = f"{self._skim_outpath}/parquet/{self._year}/{dataset}/{region}"
+                skim_path = f"{self._skim_outpath}/{shift_name.replace('_', '')}/{self._year}/{dataset}/{region}"
             else:
-                skim_path = Path(self._skim_outpath) /"parquet" / self._year / dataset /  region
+                skim_path = Path(self._skim_outpath) / shift_name.replace('_', '') / self._year / dataset /  region
                 skim_path.mkdir(parents=True, exist_ok=True)
             print("Saving skim to: ", skim_path)
 
-            # possible TODO: add systematic weights?
             output["skim"][region] = dak.to_parquet(
                 output_array[cut],
                 str(skim_path),
                 compute=False,
             )
 
-            allcuts = set()
-            cut = selection.all(*allcuts)
-            output["cutflow"].fill(
-                dataset=dataset,
-                region=region,
-                genflavor=normalize(genflavor, None),
-                cut=0,
-                weight=nominal_weight,
-            )
-            for i, cut in enumerate(selections):
-                allcuts.add(cut)
-                cut = selection.all(*allcuts)  # noqa: PLW2901
+            if shift_name == "nominal":
+                allcuts = set()
+                cut = selection.all(*allcuts)
                 output["cutflow"].fill(
                     dataset=dataset,
                     region=region,
-                    genflavor=normalize(genflavor, cut),
-                    cut=i + 1,
-                    weight=nominal_weight[cut],
+                    genflavor=normalize(genflavor, None),
+                    cut=0,
+                    weight=nominal_weight,
                 )
-
-        def skim_jer(region, jer_var, output_array):
-            selections = regions[region]
-            cut = selection.all(*selections)
-
-            if "root:" in self._skim_outpath:
-                skim_path = f"{self._skim_outpath}/{jer_var} /{self._year}/{dataset}/ {region}"
-            else:
-                skim_path = Path(self._skim_outpath) / jer_var /self._year / dataset /  region
-                skim_path.mkdir(parents=True, exist_ok=True)
-            print("Saving skim to: ", skim_path)
-
-            # possible TODO: add systematic weights?
-            output["skim"][region] = dak.to_parquet(
-                output_array[cut],
-                str(skim_path),
-                compute=False,
-            )
-
-        if shift_name:
+                for i, cut in enumerate(selections):
+                    allcuts.add(cut)
+                    cut = selection.all(*allcuts)
+                    output["cutflow"].fill(
+                        dataset=dataset,
+                        region=region,
+                        genflavor=normalize(genflavor, cut),
+                        cut=i + 1,
+                        weight=nominal_weight[cut],
+                    )
+        
+        if shift_name == "nominal":
             for region in regions:
                 if self._save_skim:
-                    if region != "signal-all":
-                        if isRealData:
-                            skim_jer(region, shift_name, ak.zip(jerc_var_array, depth_limit=1))
-                        else:
-                            skim_jer(region, shift_name, ak.zip({**jerc_var_array, **weights_dict}, depth_limit=1))
-        else:
-            for region in regions:
-                if self._save_skim:
-                    print(region)
                     if region == "signal-all":
                         skim(region, ak.zip({**output_array, **output_array_extra}, depth_limit=1))
                     else:
@@ -672,6 +645,14 @@ class categorizer(SkimmerABC):
                             skim(region, ak.zip(output_array, depth_limit=1))
                         else:
                             skim(region, ak.zip({**output_array, **weights_dict}, depth_limit=1))
+        else:
+            for region in regions:
+                if self._save_skim:
+                    if region != "signal-all":
+                        if isRealData:
+                            skim(region, ak.zip(jerc_var_array, depth_limit=1))
+                        else:
+                            skim(region, ak.zip({**jerc_var_array, **weights_dict}, depth_limit=1))
 
         toc = time.time()
         output["filltime"] = toc - tic
