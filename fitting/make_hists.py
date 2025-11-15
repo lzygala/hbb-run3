@@ -11,7 +11,7 @@ import uproot
 
 from hbb import utils
 
-def fill_hists(outdict, events, region, reg_cfg, obs_cfg, qq_true, s):
+def fill_hists(outdict, events, region, reg_cfg, obs_cfg, qq_true, s, j_var=None):
 
     h = hist.Hist(hist.axis.Regular(obs_cfg["nbins"], obs_cfg["min"], obs_cfg["max"], name=obs_cfg["name"], label=obs_cfg["name"]))
 
@@ -21,8 +21,10 @@ def fill_hists(outdict, events, region, reg_cfg, obs_cfg, qq_true, s):
 
     for _process_name, data in events.items():
 
-        if s == "nominal":
+        if j_var or s == "nominal":
             weight_val = data["finalWeight"].astype(float)
+            if j_var:
+                s = j_var
         else:
             weight_val = data[s].astype(float) / data["sum_genWeight"].astype(float)
 
@@ -88,9 +90,16 @@ def main(args):
     year = args.year
     tag = args.tag
 
-    path_to_dir = f"/eos/uscms/store/group/lpchbbrun3/skims/{tag}"
+    path_to_dir = f"/eos/uscms/store/group/lpchbbrun3/lzygala/{tag}"
     
     samples_qq = ['Wjets','Zjets','EWKW','EWKZ','EWKV']
+
+    jerc_variations = [
+        None,
+        "JES",
+        "JER",
+        "UES",
+    ]
     
     columns = [
         "weight",
@@ -104,22 +113,14 @@ def main(args):
     ]
 
     columns_systs = [
-        'ISRPartonShowerUp',
-        'ISRPartonShowerDown',
-        'FSRPartonShowerUp', 
-        'FSRPartonShowerDown', 
-        'aS_weightUp',
-        'aS_weightDown', 
-        'PDF_weightUp', 
-        'PDF_weightDown', 
-        'PDFaS_weightUp', 
-        'PDFaS_weightDown', 
-        'scalevar_7ptUp', 
-        'scalevar_7ptDown',
-        'scalevar_3ptUp',
-        'scalevar_3ptDown', 
-        'pileupUp',
-        'pileupDown', 
+        'ISRPartonShower',
+        'FSRPartonShower', 
+        'aS_weight',
+        'PDF_weight',  
+        'PDFaS_weight', 
+        'scalevar_7pt', 
+        'scalevar_3pt',
+        'pileup',
     ]
 
     data_dirs = [Path(path_to_dir) / year]
@@ -161,23 +162,47 @@ def main(args):
         for dataset in datasets:
             for reg, cfg in cats.items():
                 for data_dir in data_dirs:
+                    for var in jerc_variations:
 
-                    events = utils.load_samples(
-                        data_dir,
-                        {process: [dataset]},
-                        columns=columns if "data" in process else columns+columns_systs,
-                        region=cfg["name"],
-                        filters=filters
-                    )
+                        if not var:
+                            events = utils.load_samples(
+                                data_dir,
+                                {process: [dataset]},
+                                columns=columns if "data" in process else 
+                                        columns+[f"{syst}{dir}" for syst in columns_systs for dir in ["Up", "Down"]],
+                                region=cfg["name"],
+                                filters=filters,
+                                variation=var
+                            )
 
-                    if not events:
-                        continue
+                            if not events:
+                                continue
 
-                    fill_hists(out_hists, events, reg, cfg, obs_cfg, (process in samples_qq), "nominal")
+                            fill_hists(out_hists, events, reg, cfg, obs_cfg, (process in samples_qq), "nominal", var)
 
-                    if "data" not in process:
-                        for syst in columns_systs:
-                            fill_hists(out_hists, events, reg, cfg, obs_cfg, (process in samples_qq), syst)
+                            if "data" not in process:
+                                for syst in columns_systs:
+                                    for direction in ["Up", "Down"]:
+                                        fill_hists(out_hists, events, reg, cfg, obs_cfg, (process in samples_qq), f"{syst}{direction}", var)
+
+                        else:   #jerc variations
+                            for direction in ["Up", "Down"]:
+                                var_jerc = f"{var}{direction}"
+
+                                events = utils.load_samples(
+                                    data_dir,
+                                    {process: [dataset]},
+                                    columns=columns,    #jerc variations only need base columns
+                                    region=cfg["name"],
+                                    filters=filters,
+                                    variation=var_jerc
+                                )
+
+                                if not events:
+                                    continue
+
+                                fill_hists(out_hists, events, reg, cfg, obs_cfg, (process in samples_qq), var_jerc, var_jerc)
+
 
     for name, h in out_hists.items():
         fout[name] = h

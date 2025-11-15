@@ -228,8 +228,11 @@ def ggfvbf_rhalphabet(args):
     #Systematics
     sys_dict = {}
     sys_dict['pileup'] = rl.NuisanceParameter('CMS_PU_{}'.format(year), 'lnN')
+    sys_dict['JES'] = rl.NuisanceParameter('CMS_scale_j_{}'.format(year), 'lnN')
+    sys_dict['JER'] = rl.NuisanceParameter('CMS_res_j_{}'.format(year), 'lnN')
+    sys_dict['UES'] = rl.NuisanceParameter('CMS_ues_j_{}'.format(year), 'lnN')
 
-    exp_systs = ['pileup']
+    exp_systs = ['pileup', 'JES', 'JER', 'JER']
 
     pdf_Higgs_ggF = rl.NuisanceParameter('pdf_Higgs_ggF','lnN')
     pdf_Higgs_VBF = rl.NuisanceParameter('pdf_Higgs_VBF','lnN')
