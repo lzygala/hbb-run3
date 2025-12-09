@@ -308,22 +308,64 @@ class categorizer(SkimmerABC):
             elif var == "UES":
                 met = getattr(getattr(met, attr), direction.lower())
 
-        goodfatjets = good_ak8jets(fatjets)
-        goodjets = good_ak4jets(jets)
-
         cut_jetveto = get_jetveto_event(jets, self._year)
         selection.add("ak4jetveto", cut_jetveto)
 
-        selection.add("2FJ", ak.num(goodfatjets, axis=1) == 2)
-        selection.add("not2FJ", ak.num(goodfatjets, axis=1) != 2)
+        
+        # ----- LEPTONS -----
+        muons = correct_muons(events.Muon, events, self._year, isRealData)
+        if shift_name != "nominal" and "Muon" in shift_name:
+            var, direction = shift_name.split("_")
+            self._mupt_type = f"{mupt_variations[var]}_{direction.lower()}"
+
+        goodmuon = good_muons(muons, self._mupt_type)
+        nmuons = ak.num(goodmuon, axis=1)
+        muons['type'] = ak.ones_like(muons.pt) * 0
+        leadingmuon = ak.firsts(goodmuon)
+        ttbarmuon = ak.firsts(goodmuon[getattr(goodmuon, self._mupt_type) > 55.0])
+        # low pt muons break sf (lower bound 15GeV)
+
+        goodelectron = good_electrons(events.Electron)
+        nelectrons = ak.num(goodelectron, axis=1)
+        electrons['type'] = ak.ones_like(electrons.pt) * 1
+
+        # 2L Leading Leptons
+        all_leps = ak.concatenate([goodmuons, goodelectrons], axis=1)
+        leps_ordered = ak.argsort(all_leps.pt, ascending=False)
+        leadinglep = all_leps[leps_ordered[:,0]]
+        subleadinglep = all_leps[leps_ordered[:,1]]
+        lep_mass = (leadinglep + subleadinglep).mass
+
+        selection.add("highmet", met.pt > 100.0)
+
+        selection.add("noleptons", (nmuons == 0) & (nelectrons == 0))
+        selection.add("twoleptons", (ak.num(all_leps) == 2))
+        selection.add("oppsign", ((leadinglep.charge * subleadinglep.charge) == -1))
+        selection.add("lepdR", (leadinglep.delta_r(subleadinglep) > 0.5))
+        selection.add("sameflavor", (leadinglep.type == subleadinglep.type))
+
+        selection.add("inZpeak", ((lep_mass) <= 96) & ((lep_mass) >= 86))
+        selection.add("notZpeak", ((lep_mass) >= 96) | ((lep_mass) <= 86))
+
+        selection.add("onemuon", (nmuons == 1) & (nelectrons == 0))
+        selection.add(
+            "muonkin", (getattr(leadingmuon, self._mupt_type) > 55.0) & (abs(leadingmuon.eta) < 2.1)
+        )
+        selection.add("muonDphiAK8", abs(leadingmuon.delta_phi(candidatejet)) > 2 * np.pi / 3)
+
+
+        # ---- Higgs AK8 ----
+        goodfatjets = good_ak8jets(fatjets)
+        dR_leadlep = goodfatjets.delta_r(leadinglep)
+        dR_subleadlep = goodfatjets.delta_r(subleadinglep)
+        ak8_outside_leps = goodfatjets[(dR_leadlep > 0.8) & (dR_subleadlep > 0.8)]
 
         if "v12" in self._nano_version:
-            xbbfatjets = goodfatjets[ak.argsort(goodfatjets.pnetXbbXcc, axis=1, ascending=False)]
+            xbbfatjets = ak8_outside_leps[ak.argsort(ak8_outside_leps.pnetXbbXcc, axis=1, ascending=False)]
         else:
-            xbbfatjets = goodfatjets[ak.argsort(goodfatjets.ParTPXbbXcc, axis=1, ascending=False)]
+            xbbfatjets = ak8_outside_leps[ak.argsort(ak8_outside_leps.ParTPXbbXcc, axis=1, ascending=False)]
 
-        candidatejet = ak.firsts(xbbfatjets[:, 0:1])
-        subleadingjet = ak.firsts(xbbfatjets[:, 1:2])
+        candidatejet = ak.firsts(xbbfatjets)
 
         selection.add(
             "minjetkin",
@@ -332,34 +374,12 @@ class categorizer(SkimmerABC):
             & (abs(candidatejet.eta) < 2.5),
         )
 
-        selection.add(
-            "minjetkin_zgamma",
-            (candidatejet.pt >= 200)  # Loosened pt cut
-            & (candidatejet.pt < 1200)
-            & (candidatejet.msd >= 0.0)  # Loosened msd cut
-            & (candidatejet.msd < 201.0)
-            & (abs(candidatejet.eta) < 2.5),
-        )
+        # ---- AK4 Jets ----
+        goodjets = good_ak4jets(jets)
+        dR = goodjets.delta_r(candidatejet)
+        ak4_outside_ak8 = goodjets[dR > 0.8]
 
-        selection.add("particleNetXbbpass", (candidatejet.particleNet_XbbVsQCD >= 0.5))
-
-        # only consider 4 AK4 jets leading in pT to be consistent with old framework
-        jets = goodjets[:, :4]
-        dphi = abs(jets.delta_phi(candidatejet))
-        dR = jets.delta_r(candidatejet)
-        ak4_opphem_ak8 = jets[dphi > np.pi / 2]
-        ak4_outside_ak8 = jets[dR > 0.8]
-
-        # ak4 closest to ak8
-        ak4_closest_ak8 = ak.firsts(
-            ak4_outside_ak8[ak.argmin(ak4_outside_ak8.delta_r(candidatejet), axis=1, keepdims=True)]
-        )
-
-        selection.add(
-            "antiak4btagMediumOppHem",
-            ak.max(getattr(ak4_opphem_ak8, self._btagger), axis=1, mask_identity=False)
-            < self._btag_cut,
-        )
+        #AK4 b-jet vetos
         selection.add(
             "antiak4btagMedium",
             ak.max(getattr(ak4_outside_ak8, self._btagger), axis=1, mask_identity=False)
@@ -371,13 +391,17 @@ class categorizer(SkimmerABC):
             > self._btag_cut,
         )
 
-        selection.add("lowmet", met.pt < 140.0)
+        # ---- VBF Jets ----
+        dR_higgs = goodjets.delta_r(candidatejet)
+        dR_leadlep = goodjets.delta_r(leadinglep)
+        dR_subleadlep = goodjets.delta_r(subleadinglep)
+        ak4_outside_objs = goodjets[((dR_higgs > 0.8) & (dR_leadlep > 0.4) & (dR_subleadlep > 0.4))]
 
         # VBF specific variables
-        jet1_away = ak.firsts(ak4_outside_ak8[:, 0:1])
-        jet2_away = ak.firsts(ak4_outside_ak8[:, 1:2])
-        jet3_away = ak.firsts(ak4_outside_ak8[:, 2:3])
-        jet4_away = ak.firsts(ak4_outside_ak8[:, 3:4])
+        jet1_away = ak.firsts(ak4_outside_objs[:, 0:1])
+        jet2_away = ak.firsts(ak4_outside_objs[:, 1:2])
+        jet3_away = ak.firsts(ak4_outside_objs[:, 2:3])
+        jet4_away = ak.firsts(ak4_outside_objs[:, 3:4])
 
         vbf_deta = abs(jet1_away.eta - jet2_away.eta)
         vbf_mjj = (jet1_away + jet2_away).mass
@@ -389,38 +413,6 @@ class categorizer(SkimmerABC):
         isnotvbf = ak.fill_none(~isvbf, True)
 
         selection.add("isvbf", isvbf)
-        selection.add("notvbf", isnotvbf)
-
-        muons = correct_muons(events.Muon, events, self._year, isRealData)
-        if shift_name != "nominal" and "Muon" in shift_name:
-            var, direction = shift_name.split("_")
-            self._mupt_type = f"{mupt_variations[var]}_{direction.lower()}"
-
-        goodmuon = good_muons(muons, self._mupt_type)
-        nmuons = ak.num(goodmuon, axis=1)
-        leadingmuon = ak.firsts(goodmuon)
-        ttbarmuon = ak.firsts(goodmuon[getattr(goodmuon, self._mupt_type) > 55.0])
-        # low pt muons break sf (lower bound 15GeV)
-
-        goodelectron = good_electrons(events.Electron)
-        nelectrons = ak.num(goodelectron, axis=1)
-
-        selection.add("noleptons", (nmuons == 0) & (nelectrons == 0))
-        selection.add("onemuon", (nmuons == 1) & (nelectrons == 0))
-        selection.add(
-            "muonkin", (getattr(leadingmuon, self._mupt_type) > 55.0) & (abs(leadingmuon.eta) < 2.1)
-        )
-        selection.add("muonDphiAK8", abs(leadingmuon.delta_phi(candidatejet)) > 2 * np.pi / 3)
-
-        goodphotons = good_photons(events.Photon)
-        nphotons = ak.num(goodphotons, axis=1)
-
-        ntightphotons = ak.num(tight_photons(events.Photon), axis=1)
-        vgammaphoton = ak.firsts(tight_photons(events.Photon))
-
-        selection.add("onephoton", (nphotons == 1))
-        selection.add("atleastonephoton", (ntightphotons >= 1))
-        selection.add("passphotonveto", (nphotons == 0))
 
         gen_variables = {}
         btag_SF = ak.ones_like(events.run)
@@ -431,14 +423,6 @@ class categorizer(SkimmerABC):
             # signal regions
             weights_dict, totals_temp, btag_SF = self.add_weights(
                 weights, events, dataset, ak4_opphem_ak8
-            )
-            # muon region
-            weights_dict_mu, totals_temp_mu, btag_SF_mu = self.add_weights(
-                weights_mu, events, dataset, ak4_outside_ak8, muons=ttbarmuon
-            )
-            # gamma region
-            weights_dict_gamma, totals_temp_gamma, btag_SF_gamma = self.add_weights(
-                weights_gamma, events, dataset, ak4_outside_ak8, photons=vgammaphoton
             )
 
             for d, gen_func in gen_selection_dict.items():
@@ -459,69 +443,34 @@ class categorizer(SkimmerABC):
         msd_matched = candidatejet.msd * (genflavor > 0) + candidatejet.msd * (genflavor == 0)
 
         regions = {
-            "signal-all": [
+            "signal-wwh": [
                 "trigger",
                 "lumimask",
                 "metfilter",
                 "ak4jetveto",
+                "twoleptons",
+                "highmet",
+                "oppsign",
+                "lepdR",
+                "notZpeak",
                 "minjetkin",
-                "antiak4btagMediumOppHem",
-                "lowmet",
-                "noleptons",
-            ],
-            "signal-ggf": [
-                "trigger",
-                "lumimask",
-                "metfilter",
-                "ak4jetveto",
-                "minjetkin",
-                "antiak4btagMediumOppHem",
-                "lowmet",
-                "noleptons",
-                "notvbf",
-                "not2FJ",
-            ],
-            "signal-vh": [
-                "trigger",
-                "lumimask",
-                "metfilter",
-                "ak4jetveto",
-                "minjetkin",
-                "antiak4btagMediumOppHem",
-                "lowmet",
-                "noleptons",
-                "notvbf",
-                "2FJ",
-            ],
-            "signal-vbf": [
-                "trigger",
-                "lumimask",
-                "metfilter",
-                "ak4jetveto",
-                "minjetkin",
-                "antiak4btagMediumOppHem",
-                "lowmet",
-                "noleptons",
-                "isvbf",
-            ],
-            "control-tt": [
-                "muontrigger",
-                "lumimask",
-                "metfilter",
-                "ak4jetveto",
-                "minjetkin",
-                "ak4btagMedium08",
-                "onemuon",
-                "muonkin",
-                "muonDphiAK8",
-            ],
-            "control-zgamma": [
-                "egammatrigger",
-                "lumimask",
-                "metfilter",
-                "minjetkin_zgamma",
-                "atleastonephoton",
                 "antiak4btagMedium",
+                "isvbf",
+
+            ],
+            "signal-zzh": [
+                "trigger",
+                "lumimask",
+                "metfilter",
+                "ak4jetveto",
+                "twoleptons",
+                "highmet",
+                "oppsign",
+                "lepdR",
+                "inZpeak",
+                "minjetkin",
+                "antiak4btagMedium",
+                "isvbf",
             ],
         }
 
@@ -593,9 +542,6 @@ class categorizer(SkimmerABC):
                 "FatJet1_pnetTXgg": subleadingjet.particleNet_XggVsQCD,
                 "VBFPair_mjj": vbf_mjj,
                 "VBFPair_deta": vbf_deta,
-                "Photon0_pt": vgammaphoton.pt,
-                "Photon0_phi": vgammaphoton.phi,
-                "Photon0_eta": vgammaphoton.eta,
                 "MET": met.pt,
                 "weight": nominal_weight,
                 "genWeight": gen_weight,
@@ -685,11 +631,6 @@ class categorizer(SkimmerABC):
                 "Jet4_btagPNetCvB": jet4_away.btagPNetCvB,
                 "Jet4_btagPNetCvL": jet4_away.btagPNetCvL,
                 "Jet4_btagPNetQvG": jet4_away.btagPNetQvG,
-                # AK4 Jet away but closest to FatJet0
-                "JetClosestFatJet0_pt": ak4_closest_ak8.pt,
-                "JetClosestFatJet0_eta": ak4_closest_ak8.eta,
-                "JetClosestFatJet0_phi": ak4_closest_ak8.phi,
-                "JetClosestFatJet0_mass": ak4_closest_ak8.mass,
             }
 
         def skim(region, output_array):
@@ -759,26 +700,6 @@ class categorizer(SkimmerABC):
                                 skim(
                                     region, ak.zip({**output_array, **weights_dict}, depth_limit=1)
                                 )
-                            elif region == "control-tt":
-                                output_array["weight"] = (
-                                    ak.ones_like(events.run)
-                                    if isRealData
-                                    else weights_dict_mu["weight"]
-                                )
-                                skim(
-                                    region,
-                                    ak.zip({**output_array, **weights_dict_mu}, depth_limit=1),
-                                )
-                            elif region == "control-zgamma":
-                                output_array["weight"] = (
-                                    ak.ones_like(events.run)
-                                    if isRealData
-                                    else weights_dict_gamma["weight"]
-                                )
-                                skim(
-                                    region,
-                                    ak.zip({**output_array, **weights_dict_gamma}, depth_limit=1),
-                                )
 
             else:  # energy variation shift case
                 for region in regions:
@@ -790,28 +711,6 @@ class categorizer(SkimmerABC):
                                 skim(
                                     region,
                                     ak.zip({**energy_var_array, **weights_dict}, depth_limit=1),
-                                )
-                            elif region == "control-tt":
-                                output_array["weight"] = (
-                                    ak.ones_like(events.run)
-                                    if isRealData
-                                    else weights_dict_mu["weight"]
-                                )
-                                skim(
-                                    region,
-                                    ak.zip({**energy_var_array, **weights_dict_mu}, depth_limit=1),
-                                )
-                            elif region == "control-zgamma":
-                                output_array["weight"] = (
-                                    ak.ones_like(events.run)
-                                    if isRealData
-                                    else weights_dict_gamma["weight"]
-                                )
-                                skim(
-                                    region,
-                                    ak.zip(
-                                        {**energy_var_array, **weights_dict_gamma}, depth_limit=1
-                                    ),
                                 )
 
         toc = time.time()
