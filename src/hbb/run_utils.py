@@ -13,7 +13,7 @@ def parse_common_args(parser):
         help="year",
         type=str,
         required=True,
-        choices=["2022", "2022EE", "2023", "2023BPix"],
+        choices=["2022", "2022EE", "2023", "2023BPix", "2024"],
     )
     parser.add_argument(
         "--samples",
@@ -35,7 +35,8 @@ def parse_common_args(parser):
         choices=[
             "v12",
             "v12v2_private",
-            "v14_private"
+            "v14_private",
+            "v15_private"
         ],
         help="NanoAOD version",
     )
@@ -59,7 +60,7 @@ def check_branch(git_branch: str, allow_diff_local_repo: bool = False):
     """Check that specified git branch exists in the repo, and local repo is up-to-date"""
     assert not bool(
         os.system(
-            f'git ls-remote --exit-code --heads "https://github.com/DAZSLE/hbb-run3" "{git_branch}"'
+            f'git ls-remote --exit-code --heads "https://github.com/lzygala/hbb-run3" "{git_branch}"'
         )
     ), f"Branch {git_branch} does not exist"
 

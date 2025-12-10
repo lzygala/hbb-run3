@@ -343,15 +343,15 @@ class categorizer(SkimmerABC):
         ak8_outside_leps = goodfatjets[(dR_leadlep > 0.8) & (dR_subleadlep > 0.8)]
 
         if "v12" in self._nano_version:
-            xbbfatjets = ak8_outside_leps[ak.argsort(ak8_outside_leps.pnetXbbXcc, axis=1, ascending=False)]
+            xbbfatjets = ak8_outside_leps[ak.argsort(ak8_outside_leps.pnetXbbVsQCD, axis=1, ascending=False)]
         else:
-            xbbfatjets = ak8_outside_leps[ak.argsort(ak8_outside_leps.ParTPXbbXcc, axis=1, ascending=False)]
+            xbbfatjets = ak8_outside_leps[ak.argsort(ak8_outside_leps.ParTPXbbVsQCD, axis=1, ascending=False)]
 
         candidatejet = ak.firsts(xbbfatjets)
 
         selection.add(
             "minjetkin",
-            (candidatejet.pt >= 300) & (candidatejet.pt < 1200) & (candidatejet.msd >= 40.0)
+            (candidatejet.pt >= 250) & (candidatejet.msd >= 40.0)
             # & (candidatejet.msd < 201.0)
             & (abs(candidatejet.eta) < 2.5),
         )
@@ -379,18 +379,20 @@ class categorizer(SkimmerABC):
         dR_subleadlep = goodjets.delta_r(subleadinglep)
         ak4_outside_objs = goodjets[((dR_higgs > 0.8) & (dR_leadlep > 0.4) & (dR_subleadlep > 0.4))]
 
+        pairs = ak.combinations(ak4_outside_objs, 2, fields=["j1", "j2"])
+        deta_pairs = abs(pairs.j1.eta - pairs.j2.eta)
+        max_idx = ak.argmax(deta_pairs, axis=1, keepdims=True)
+
         # VBF specific variables
-        jet1_away = ak.firsts(ak4_outside_objs[:, 0:1])
-        jet2_away = ak.firsts(ak4_outside_objs[:, 1:2])
-        jet3_away = ak.firsts(ak4_outside_objs[:, 2:3])
-        jet4_away = ak.firsts(ak4_outside_objs[:, 3:4])
+        jet1_away = ak.firsts(pairs.j1[max_idx])
+        jet2_away = ak.firsts(pairs.j2[max_idx])
 
         vbf_deta = abs(jet1_away.eta - jet2_away.eta)
         vbf_mjj = (jet1_away + jet2_away).mass
         vbf_deta = ak.fill_none(vbf_deta, -1)
         vbf_mjj = ak.fill_none(vbf_mjj, -1)
 
-        isvbf = (vbf_deta > 3.5) & (vbf_mjj > 1000)
+        isvbf = (vbf_deta > 2.5) & (vbf_mjj > 750)
         isvbf = ak.fill_none(isvbf, False)
         isnotvbf = ak.fill_none(~isvbf, True)
 
@@ -548,17 +550,7 @@ class categorizer(SkimmerABC):
                     "FatJet0_ParTPXccVsQCD": candidatejet.ParTPXccVsQCD,
                     "FatJet0_ParTPXbbXcc": candidatejet.ParTPXbbXcc,
                     "FatJet0_ParTmassGeneric": candidatejet.ParTmassGeneric,
-                    "FatJet0_ParTmassX2p": candidatejet.ParTmassX2p,
-                    "FatJet1_ParTPQCD": candidatejet.ParTPQCD,
-                    "FatJet1_ParTPXbb": candidatejet.ParTPXbb,
-                    "FatJet1_ParTPXcc": candidatejet.ParTPXcc,
-                    "FatJet1_ParTPXqq": candidatejet.ParTPXqq,
-                    "FatJet1_ParTPXcs": candidatejet.ParTPXcs,
-                    "FatJet1_ParTPXbbVsQCD": candidatejet.ParTPXbbVsQCD,
-                    "FatJet1_ParTPXccVsQCD": candidatejet.ParTPXccVsQCD,
-                    "FatJet1_ParTPXbbXcc": candidatejet.ParTPXbbXcc,
-                    "FatJet1_ParTmassGeneric": candidatejet.ParTmassGeneric,
-                    "FatJet1_ParTmassX2p": candidatejet.ParTmassX2p,
+                    "FatJet0_ParTmassX2p": candidatejet.ParTmassX2p
                 }
                 output_array = {**output_array, **parT_array}
 
@@ -588,22 +580,6 @@ class categorizer(SkimmerABC):
                 "Jet1_btagPNetCvB": jet2_away.btagPNetCvB,
                 "Jet1_btagPNetCvL": jet2_away.btagPNetCvL,
                 "Jet1_btagPNetQvG": jet2_away.btagPNetQvG,
-                "Jet2_pt": jet3_away.pt,
-                "Jet2_eta": jet3_away.eta,
-                "Jet2_phi": jet3_away.phi,
-                "Jet2_mass": jet3_away.mass,
-                "Jet2_btagPNetB": jet3_away.btagPNetB,
-                "Jet2_btagPNetCvB": jet3_away.btagPNetCvB,
-                "Jet2_btagPNetCvL": jet3_away.btagPNetCvL,
-                "Jet2_btagPNetQvG": jet3_away.btagPNetQvG,
-                "Jet3_pt": jet4_away.pt,
-                "Jet3_eta": jet4_away.eta,
-                "Jet3_phi": jet4_away.phi,
-                "Jet3_mass": jet4_away.mass,
-                "Jet3_btagPNetB": jet4_away.btagPNetB,
-                "Jet4_btagPNetCvB": jet4_away.btagPNetCvB,
-                "Jet4_btagPNetCvL": jet4_away.btagPNetCvL,
-                "Jet4_btagPNetQvG": jet4_away.btagPNetQvG,
             }
 
         def skim(region, output_array):
