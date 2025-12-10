@@ -95,16 +95,12 @@ class categorizer(SkimmerABC):
         self._skim_outpath = skim_outpath
         self._btag_eff = btag_eff
         self._btagger, self._btag_wp = "btagPNetB", "M"
+        if year == "2024":
+            self._btagger = "btagUParTAK4B"
         self._btag_cut = b_taggers[self._year]["AK4"][self._btagger][self._btag_wp]
         self._mupt_type = "ptcorr"
 
-        with Path("src/hbb/muon_triggers.json").open() as f:
-            self._muontriggers = json.load(f)
-
-        with Path("src/hbb/egamma_triggers.json").open() as f:
-            self._egammatriggers = json.load(f)
-
-        with Path("src/hbb/triggers.json").open() as f:
+        with Path("src/hbb/dilep_triggers.json").open() as f:
             self._triggers = json.load(f)
 
         # https://twiki.cern.ch/twiki/bin/view/CMS/MissingETOptionalFiltersRun2
@@ -221,8 +217,6 @@ class categorizer(SkimmerABC):
         selection = PackedSelection()
         output = self.make_output() if not self._btag_eff else self.make_btag_output()
         weights = Weights(None, storeIndividual=True)
-        weights_mu = Weights(None, storeIndividual=True)
-        weights_gamma = Weights(None, storeIndividual=True)
         if shift_name == "nominal" and not isRealData and not self._btag_eff:
             output["sumw"][dataset] = ak.sum(events.genWeight)
 
@@ -237,20 +231,6 @@ class categorizer(SkimmerABC):
             selection.add("lumimask", lumiMasks[self._year[:4]](events.run, events.luminosityBlock))
         else:
             selection.add("lumimask", ak.values_astype(ak.ones_like(events.run), bool))
-
-        trigger = ak.values_astype(ak.zeros_like(events.run), bool)
-        for t in self._muontriggers[self._year]:
-            if t in events.HLT.fields:
-                trigger = trigger | events.HLT[t]
-        selection.add("muontrigger", trigger)
-        del trigger
-
-        trigger = ak.values_astype(ak.zeros_like(events.run), bool)
-        for t in self._egammatriggers[self._year]:
-            if t in events.HLT.fields:
-                trigger = trigger | events.HLT[t]
-        selection.add("egammatrigger", trigger)
-        del trigger
 
         metfilter = ak.values_astype(ak.ones_like(events.run), bool)
         for flag in self._met_filters[self._year]["data" if isRealData else "mc"]:
@@ -268,10 +248,10 @@ class categorizer(SkimmerABC):
         jec_key = f"{self._year}_{mc_run}"
 
         fatjets = set_ak8jets(
-            events.FatJet, self._year, self._nano_version, events.Rho.fixedGridRhoFastjetAll
+            events.FatJet, self._year, self._nano_version, ak.ones_like(events.run) #events.Rho.fixedGridRhoFastjetAll
         )
         jets = set_ak4jets(
-            events.Jet, self._year, self._nano_version, events.Rho.fixedGridRhoFastjetAll
+            events.Jet, self._year, self._nano_version, ak.ones_like(events.run) #events.Rho.fixedGridRhoFastjetAll
         )
 
         if self._nano_version == "v14_private":
@@ -290,6 +270,7 @@ class categorizer(SkimmerABC):
             fatjets = ak.zip(
                 {f: fatjets[f] for f in keep_fields}, with_name="FatJet", behavior=fatjets.behavior
             )
+
         met = events.PuppiMET
         # Apply jerc corrections to jets, fatjets, and met collections
         if not self._skip_syst:
@@ -318,31 +299,33 @@ class categorizer(SkimmerABC):
             var, direction = shift_name.split("_")
             self._mupt_type = f"{mupt_variations[var]}_{direction.lower()}"
 
-        goodmuon = good_muons(muons, self._mupt_type)
-        nmuons = ak.num(goodmuon, axis=1)
-        muons['type'] = ak.ones_like(muons.pt) * 0
-        leadingmuon = ak.firsts(goodmuon)
-        ttbarmuon = ak.firsts(goodmuon[getattr(goodmuon, self._mupt_type) > 55.0])
+        goodmuons = good_muons(muons, self._mupt_type)
+        nmuons = ak.num(goodmuons, axis=1)
+        leadingmuon = ak.firsts(goodmuons)
+        ttbarmuon = ak.firsts(goodmuons[getattr(goodmuons, self._mupt_type) > 55.0])
         # low pt muons break sf (lower bound 15GeV)
 
-        goodelectron = good_electrons(events.Electron)
-        nelectrons = ak.num(goodelectron, axis=1)
-        electrons['type'] = ak.ones_like(electrons.pt) * 1
+        goodelectrons = good_electrons(events.Electron)
+        nelectrons = ak.num(goodelectrons, axis=1)
+
+        goodmuons["flavor"] = ak.zeros_like(goodmuons.pt)
+        goodelectrons["flavor"] = ak.ones_like(goodelectrons.pt)
 
         # 2L Leading Leptons
         all_leps = ak.concatenate([goodmuons, goodelectrons], axis=1)
+        all_leps = ak.with_name(all_leps, "PtEtaPhiMLorentzVector")
         leps_ordered = ak.argsort(all_leps.pt, ascending=False)
-        leadinglep = all_leps[leps_ordered[:,0]]
-        subleadinglep = all_leps[leps_ordered[:,1]]
+        leadinglep = ak.firsts(all_leps[leps_ordered][:, 0:1])
+        subleadinglep = ak.firsts(all_leps[leps_ordered][:, 1:2])
         lep_mass = (leadinglep + subleadinglep).mass
 
         selection.add("highmet", met.pt > 100.0)
 
         selection.add("noleptons", (nmuons == 0) & (nelectrons == 0))
         selection.add("twoleptons", (ak.num(all_leps) == 2))
-        selection.add("oppsign", ((leadinglep.charge * subleadinglep.charge) == -1))
+        selection.add("oppsign", (leadinglep.charge * subleadinglep.charge) == -1)
         selection.add("lepdR", (leadinglep.delta_r(subleadinglep) > 0.5))
-        selection.add("sameflavor", (leadinglep.type == subleadinglep.type))
+        selection.add("sameflavor", leadinglep.flavor == subleadinglep.flavor)
 
         selection.add("inZpeak", ((lep_mass) <= 96) & ((lep_mass) >= 86))
         selection.add("notZpeak", ((lep_mass) >= 96) | ((lep_mass) <= 86))
@@ -351,7 +334,6 @@ class categorizer(SkimmerABC):
         selection.add(
             "muonkin", (getattr(leadingmuon, self._mupt_type) > 55.0) & (abs(leadingmuon.eta) < 2.1)
         )
-        selection.add("muonDphiAK8", abs(leadingmuon.delta_phi(candidatejet)) > 2 * np.pi / 3)
 
 
         # ---- Higgs AK8 ----
@@ -422,7 +404,7 @@ class categorizer(SkimmerABC):
         else:
             # signal regions
             weights_dict, totals_temp, btag_SF = self.add_weights(
-                weights, events, dataset, ak4_opphem_ak8
+                weights, events, dataset, ak4_outside_ak8
             )
 
             for d, gen_func in gen_selection_dict.items():
@@ -489,13 +471,6 @@ class categorizer(SkimmerABC):
         nominal_weight = ak.ones_like(events.run) if isRealData else weights_dict["weight"]
         gen_weight = ak.ones_like(events.run) if isRealData else events.genWeight
 
-        egamma_trigger_booleans = {}
-        for t in self._egammatriggers[self._year]:
-            if t in events.HLT.fields:
-                egamma_trigger_booleans[t] = events.HLT[t]
-            else:
-                egamma_trigger_booleans[t] = ak.values_astype(ak.zeros_like(events.run), bool)
-
         if self._btag_eff:
             cut = selection.all(*btag_eff_cuts)
             flat_gj = ak.flatten(goodjets)
@@ -531,22 +506,20 @@ class categorizer(SkimmerABC):
                 "FatJet0_pnetTXgg": candidatejet.particleNet_XggVsQCD,
                 "FatJet0_pnetTQCD": candidatejet.particleNet_QCD,
                 "FatJet0_pnetXbbXcc": candidatejet.pnetXbbXcc,
-                "FatJet1_pt": subleadingjet.pt,
-                "FatJet1_phi": subleadingjet.phi,
-                "FatJet1_eta": subleadingjet.eta,
-                "FatJet1_msd": subleadingjet.msd,
-                "FatJet1_pnetMass": subleadingjet.pnetmass,
-                "FatJet1_pnetTXbb": subleadingjet.particleNet_XbbVsQCD,
-                "FatJet1_pnetTXcc": subleadingjet.particleNet_XccVsQCD,
-                "FatJet1_pnetTXqq": subleadingjet.particleNet_XqqVsQCD,
-                "FatJet1_pnetTXgg": subleadingjet.particleNet_XggVsQCD,
                 "VBFPair_mjj": vbf_mjj,
                 "VBFPair_deta": vbf_deta,
                 "MET": met.pt,
+                "LeadingLep_pt": leadinglep.pt,
+                "LeadingLep_flavor": leadinglep.flavor,
+                "LeadingLep_phi": leadinglep.phi,
+                "LeadingLep_eta": leadinglep.eta,
+                "SubLeadingLep_pt": subleadinglep.pt,
+                "SubLeadingLep_flavor": subleadinglep.flavor,
+                "SubLeadingLep_phi": subleadinglep.phi,
+                "SubLeadingLep_eta": subleadinglep.eta,
                 "weight": nominal_weight,
                 "genWeight": gen_weight,
                 **gen_variables,
-                **egamma_trigger_booleans,
             }
 
             # reduced output array for energy variation shift
