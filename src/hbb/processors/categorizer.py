@@ -356,10 +356,27 @@ class categorizer(SkimmerABC):
             & (abs(candidatejet.eta) < 2.5),
         )
 
+        # ---- 2ND AK8 ----
+        dR_candHiggs = goodfatjets.delta_r(candidatejet)
+        ak8_outside_objs = goodfatjets[(dR_leadlep > 0.8) & (dR_subleadlep > 0.8) & (dR_candHiggs > 0.8)] 
+        
+        #sorted in pt already
+        candidateVjet = ak.firsts(ak8_outside_objs)
+
+        selection.add("onegoodAK8", (ak.num(ak8_outside_leps) == 1))
+        selection.add("twogoodAK8", (ak.num(ak8_outside_leps) == 2))
+        selection.add(
+            "minVjetkin",
+            (candidateVjet.pt >= 250) & (candidateVjet.msd >= 40.0)
+            # & (candidatejet.msd < 201.0)
+            & (abs(candidateVjet.eta) < 2.5),
+        )
+
         # ---- AK4 Jets ----
         goodjets = good_ak4jets(jets)
         dR = goodjets.delta_r(candidatejet)
-        ak4_outside_ak8 = goodjets[dR > 0.8]
+        dR_V = ak.fill_none(goodjets.delta_r(candidateVjet), float("inf")) #for events with no V jet
+        ak4_outside_ak8 = goodjets[(dR > 0.8) & (dR_V > 0.8)]
 
         #AK4 b-jet vetos
         selection.add(
@@ -377,7 +394,8 @@ class categorizer(SkimmerABC):
         dR_higgs = goodjets.delta_r(candidatejet)
         dR_leadlep = goodjets.delta_r(leadinglep)
         dR_subleadlep = goodjets.delta_r(subleadinglep)
-        ak4_outside_objs = goodjets[((dR_higgs > 0.8) & (dR_leadlep > 0.4) & (dR_subleadlep > 0.4))]
+        dR_V = ak.fill_none(goodjets.delta_r(candidateVjet), float("inf")) #for events with no V jet
+        ak4_outside_objs = goodjets[((dR_higgs > 0.8) & (dR_leadlep > 0.4) & (dR_subleadlep > 0.4) & (dR_V > 0.8))]
 
         pairs = ak.combinations(ak4_outside_objs, 2, fields=["j1", "j2"])
         deta_pairs = abs(pairs.j1.eta - pairs.j2.eta)
@@ -437,12 +455,13 @@ class categorizer(SkimmerABC):
                 "oppsign",
                 "lepdR",
                 "notZpeak",
+                "onegoodAK8",
                 "minjetkin",
                 "antiak4btagMedium",
                 "isvbf",
 
             ],
-            "signal-zzh": [
+            "signal-zzh-1FJ": [
                 "trigger",
                 "lumimask",
                 "metfilter",
@@ -452,7 +471,23 @@ class categorizer(SkimmerABC):
                 "oppsign",
                 "lepdR",
                 "inZpeak",
+                "onegoodAK8",
                 "minjetkin",
+                "antiak4btagMedium",
+                "isvbf",
+            ],
+            "signal-wzh-zzh-2FJ": [
+                "trigger",
+                "lumimask",
+                "metfilter",
+                "ak4jetveto",
+                "twoleptons",
+                "oppsign",
+                "lepdR",
+                "inZpeak",
+                "twogoodAK8",
+                "minjetkin",
+                "minVjetkin",
                 "antiak4btagMedium",
                 "isvbf",
             ],
@@ -494,20 +529,33 @@ class categorizer(SkimmerABC):
                 "GenFlavor": genflavor,
                 "nFatJet": ak.num(goodfatjets, axis=1),
                 "nJet": ak.num(goodjets, axis=1),
-                "FatJet0_pt": candidatejet.pt,
-                "FatJet0_phi": candidatejet.phi,
-                "FatJet0_eta": candidatejet.eta,
-                "FatJet0_msd": candidatejet.msd,
-                "FatJet0_msdmatched": msd_matched,
-                "FatJet0_n2b1": candidatejet.n2b1,
-                "FatJet0_n3b1": candidatejet.n3b1,
-                "FatJet0_pnetMass": candidatejet.pnetmass,
-                "FatJet0_pnetTXbb": candidatejet.particleNet_XbbVsQCD,
-                "FatJet0_pnetTXcc": candidatejet.particleNet_XccVsQCD,
-                "FatJet0_pnetTXqq": candidatejet.particleNet_XqqVsQCD,
-                "FatJet0_pnetTXgg": candidatejet.particleNet_XggVsQCD,
-                "FatJet0_pnetTQCD": candidatejet.particleNet_QCD,
-                "FatJet0_pnetXbbXcc": candidatejet.pnetXbbXcc,
+                "HiggsAK8_pt": candidatejet.pt,
+                "HiggsAK8_phi": candidatejet.phi,
+                "HiggsAK8_eta": candidatejet.eta,
+                "HiggsAK8_msd": candidatejet.msd,
+                "HiggsAK8_msdmatched": msd_matched,
+                "HiggsAK8_n2b1": candidatejet.n2b1,
+                "HiggsAK8_n3b1": candidatejet.n3b1,
+                "HiggsAK8_pnetMass": candidatejet.pnetmass,
+                "HiggsAK8_pnetTXbb": candidatejet.particleNet_XbbVsQCD,
+                "HiggsAK8_pnetTXcc": candidatejet.particleNet_XccVsQCD,
+                "HiggsAK8_pnetTXqq": candidatejet.particleNet_XqqVsQCD,
+                "HiggsAK8_pnetTXgg": candidatejet.particleNet_XggVsQCD,
+                "HiggsAK8_pnetTQCD": candidatejet.particleNet_QCD,
+                "HiggsAK8_pnetXbbXcc": candidatejet.pnetXbbXcc,
+                "VAK8_pt": candidateVjet.pt,
+                "VAK8_phi": candidateVjet.phi,
+                "VAK8_eta": candidateVjet.eta,
+                "VAK8_msd": candidateVjet.msd,
+                "VAK8_n2b1": candidateVjet.n2b1,
+                "VAK8_n3b1": candidateVjet.n3b1,
+                "VAK8_pnetMass": candidateVjet.pnetmass,
+                "VAK8_pnetTXbb": candidateVjet.particleNet_XbbVsQCD,
+                "VAK8_pnetTXcc": candidateVjet.particleNet_XccVsQCD,
+                "VAK8_pnetTXqq": candidateVjet.particleNet_XqqVsQCD,
+                "VAK8_pnetTXgg": candidateVjet.particleNet_XggVsQCD,
+                "VAK8_pnetTQCD": candidateVjet.particleNet_QCD,
+                "VAK8_pnetXbbXcc": candidateVjet.pnetXbbXcc,
                 "VBFPair_mjj": vbf_mjj,
                 "VBFPair_deta": vbf_deta,
                 "MET": met.pt,
@@ -528,12 +576,18 @@ class categorizer(SkimmerABC):
             energy_var_array = {
                 "GenBoson_pt": genBosonPt,
                 "GenFlavor": genflavor,
-                "FatJet0_pt": candidatejet.pt,
-                "FatJet0_msd": candidatejet.msd,
-                "FatJet0_msdmatched": msd_matched,
-                "FatJet0_pnetTXbb": candidatejet.particleNet_XbbVsQCD,
-                "FatJet0_pnetTXcc": candidatejet.particleNet_XccVsQCD,
-                "FatJet0_pnetXbbXcc": candidatejet.pnetXbbXcc,
+                "HiggsAK8_pt": candidatejet.pt,
+                "HiggsAK8_msd": candidatejet.msd,
+                "HiggsAK8_msdmatched": msd_matched,
+                "HiggsAK8_pnetTXbb": candidatejet.particleNet_XbbVsQCD,
+                "HiggsAK8_pnetTXcc": candidatejet.particleNet_XccVsQCD,
+                "HiggsAK8_pnetXbbXcc": candidatejet.pnetXbbXcc,
+                "VAK8_pt": candidateVjet.pt,
+                "VAK8_msd": candidateVjet.msd,
+                "VAK8_msdmatched": msd_matched,
+                "VAK8_pnetTXbb": candidateVjet.particleNet_XbbVsQCD,
+                "VAK8_pnetTXcc": candidateVjet.particleNet_XccVsQCD,
+                "VAK8_pnetXbbXcc": candidateVjet.pnetXbbXcc,
                 "VBFPair_mjj": vbf_mjj,
                 "weight": nominal_weight,
                 "genWeight": gen_weight,
@@ -541,29 +595,42 @@ class categorizer(SkimmerABC):
 
             if "v12" not in self._nano_version:
                 parT_array = {
-                    "FatJet0_ParTPQCD": candidatejet.ParTPQCD,
-                    "FatJet0_ParTPXbb": candidatejet.ParTPXbb,
-                    "FatJet0_ParTPXcc": candidatejet.ParTPXcc,
-                    "FatJet0_ParTPXqq": candidatejet.ParTPXqq,
-                    "FatJet0_ParTPXcs": candidatejet.ParTPXcs,
-                    "FatJet0_ParTPXbbVsQCD": candidatejet.ParTPXbbVsQCD,
-                    "FatJet0_ParTPXccVsQCD": candidatejet.ParTPXccVsQCD,
-                    "FatJet0_ParTPXbbXcc": candidatejet.ParTPXbbXcc,
-                    "FatJet0_ParTmassGeneric": candidatejet.ParTmassGeneric,
-                    "FatJet0_ParTmassX2p": candidatejet.ParTmassX2p
+                    "HiggsAK8_ParTPQCD": candidatejet.ParTPQCD,
+                    "HiggsAK8_ParTPXbb": candidatejet.ParTPXbb,
+                    "HiggsAK8_ParTPXcc": candidatejet.ParTPXcc,
+                    "HiggsAK8_ParTPXqq": candidatejet.ParTPXqq,
+                    "HiggsAK8_ParTPXcs": candidatejet.ParTPXcs,
+                    "HiggsAK8_ParTPXbbVsQCD": candidatejet.ParTPXbbVsQCD,
+                    "HiggsAK8_ParTPXccVsQCD": candidatejet.ParTPXccVsQCD,
+                    "HiggsAK8_ParTPXbbXcc": candidatejet.ParTPXbbXcc,
+                    "HiggsAK8_ParTmassGeneric": candidatejet.ParTmassGeneric,
+                    "HiggsAK8_ParTmassX2p": candidatejet.ParTmassX2p
+                    "VAK8_ParTPQCD": candidateVjet.ParTPQCD,
+                    "VAK8_ParTPXbb": candidateVjet.ParTPXbb,
+                    "VAK8_ParTPXcc": candidateVjet.ParTPXcc,
+                    "VAK8_ParTPXqq": candidateVjet.ParTPXqq,
+                    "VAK8_ParTPXcs": candidateVjet.ParTPXcs,
+                    "VAK8_ParTPXbbVsQCD": candidateVjet.ParTPXbbVsQCD,
+                    "VAK8_ParTPXccVsQCD": candidateVjet.ParTPXccVsQCD,
+                    "VAK8_ParTPXbbXcc": candidateVjet.ParTPXbbXcc,
+                    "VAK8_ParTmassGeneric": candidateVjet.ParTmassGeneric,
+                    "VAK8_ParTmassX2p": candidateVjet.ParTmassX2p
                 }
                 output_array = {**output_array, **parT_array}
 
                 energy_var_array_parT = {
-                    "FatJet0_ParTPXbbVsQCD": candidatejet.ParTPXbbVsQCD,
-                    "FatJet0_ParTPXccVsQCD": candidatejet.ParTPXccVsQCD,
-                    "FatJet0_ParTPXbbXcc": candidatejet.ParTPXbbXcc,
+                    "HiggsAK8_ParTPXbbVsQCD": candidatejet.ParTPXbbVsQCD,
+                    "HiggsAK8_ParTPXccVsQCD": candidatejet.ParTPXccVsQCD,
+                    "HiggsAK8_ParTPXbbXcc": candidatejet.ParTPXbbXcc,
+                    "VAK8_ParTPXbbVsQCD": candidateVjet.ParTPXbbVsQCD,
+                    "VAK8_ParTPXccVsQCD": candidateVjet.ParTPXccVsQCD,
+                    "VAK8_ParTPXbbXcc": candidateVjet.ParTPXbbXcc,
                 }
                 energy_var_array = {**energy_var_array, **energy_var_array_parT}
 
             # extra variables for big array
             output_array_extra = {
-                # AK4 Jets away from FatJet0
+                # AK4 Jets away from HiggsAK8
                 "Jet0_pt": jet1_away.pt,
                 "Jet0_eta": jet1_away.eta,
                 "Jet0_phi": jet1_away.phi,
