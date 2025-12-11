@@ -604,7 +604,7 @@ class categorizer(SkimmerABC):
                     "HiggsAK8_ParTPXccVsQCD": candidatejet.ParTPXccVsQCD,
                     "HiggsAK8_ParTPXbbXcc": candidatejet.ParTPXbbXcc,
                     "HiggsAK8_ParTmassGeneric": candidatejet.ParTmassGeneric,
-                    "HiggsAK8_ParTmassX2p": candidatejet.ParTmassX2p
+                    "HiggsAK8_ParTmassX2p": candidatejet.ParTmassX2p,
                     "VAK8_ParTPQCD": candidateVjet.ParTPQCD,
                     "VAK8_ParTPXbb": candidateVjet.ParTPXbb,
                     "VAK8_ParTPXcc": candidateVjet.ParTPXcc,
