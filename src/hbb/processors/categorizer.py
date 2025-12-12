@@ -314,9 +314,9 @@ class categorizer(SkimmerABC):
         # 2L Leading Leptons
         all_leps = ak.concatenate([goodmuons, goodelectrons], axis=1)
         all_leps = ak.with_name(all_leps, "PtEtaPhiMLorentzVector")
-        leps_ordered = ak.argsort(all_leps.pt, ascending=False)
-        leadinglep = ak.firsts(all_leps[leps_ordered][:, 0:1])
-        subleadinglep = ak.firsts(all_leps[leps_ordered][:, 1:2])
+        leps_ordered = all_leps[ak.argsort(all_leps.pt, axis=1, ascending=False)]
+        leadinglep = ak.firsts(leps_ordered[:, 0:1])
+        subleadinglep = ak.firsts(leps_ordered[:, 1:2])
         lep_mass = (leadinglep + subleadinglep).mass
 
         selection.add("highmet", met.pt > 100.0)
@@ -338,9 +338,10 @@ class categorizer(SkimmerABC):
 
         # ---- Higgs AK8 ----
         goodfatjets = good_ak8jets(fatjets)
-        dR_leadlep = goodfatjets.delta_r(leadinglep)
-        dR_subleadlep = goodfatjets.delta_r(subleadinglep)
-        ak8_outside_leps = goodfatjets[(dR_leadlep > 0.8) & (dR_subleadlep > 0.8)]
+        candfatjets = goodfatjets[(goodfatjets.pt > 250) & (goodfatjets.msd > 40)]
+        dR_leadlep = candfatjets.delta_r(leadinglep)
+        dR_subleadlep = candfatjets.delta_r(subleadinglep)
+        ak8_outside_leps = candfatjets[(dR_leadlep > 0.8) & (dR_subleadlep > 0.8)]
 
         if "v12" in self._nano_version:
             xbbfatjets = ak8_outside_leps[ak.argsort(ak8_outside_leps.pnetXbbVsQCD, axis=1, ascending=False)]
@@ -349,33 +350,20 @@ class categorizer(SkimmerABC):
 
         candidatejet = ak.firsts(xbbfatjets)
 
-        selection.add(
-            "minjetkin",
-            (candidatejet.pt >= 250) & (candidatejet.msd >= 40.0)
-            # & (candidatejet.msd < 201.0)
-            & (abs(candidatejet.eta) < 2.5),
-        )
-
         # ---- 2ND AK8 ----
-        dR_candHiggs = goodfatjets.delta_r(candidatejet)
-        ak8_outside_objs = goodfatjets[(dR_leadlep > 0.8) & (dR_subleadlep > 0.8) & (dR_candHiggs > 0.8)] 
+        dR_candHiggs = candfatjets.delta_r(candidatejet)
+        ak8_outside_objs = candfatjets[(dR_leadlep > 0.8) & (dR_subleadlep > 0.8) & (dR_candHiggs > 0.8)] 
         
         #sorted in pt already
         candidateVjet = ak.firsts(ak8_outside_objs)
 
         selection.add("onegoodAK8", (ak.num(ak8_outside_leps) == 1))
         selection.add("twogoodAK8", (ak.num(ak8_outside_leps) == 2))
-        selection.add(
-            "minVjetkin",
-            (candidateVjet.pt >= 250) & (candidateVjet.msd >= 40.0)
-            # & (candidatejet.msd < 201.0)
-            & (abs(candidateVjet.eta) < 2.5),
-        )
 
         # ---- AK4 Jets ----
         goodjets = good_ak4jets(jets)
         dR = goodjets.delta_r(candidatejet)
-        dR_V = ak.fill_none(goodjets.delta_r(candidateVjet), float("inf")) #for events with no V jet
+        dR_V = ak.fill_none(goodjets.delta_r(candidateVjet), float(999)) #for events with no V jet
         ak4_outside_ak8 = goodjets[(dR > 0.8) & (dR_V > 0.8)]
 
         #AK4 b-jet vetos
@@ -394,7 +382,7 @@ class categorizer(SkimmerABC):
         dR_higgs = goodjets.delta_r(candidatejet)
         dR_leadlep = goodjets.delta_r(leadinglep)
         dR_subleadlep = goodjets.delta_r(subleadinglep)
-        dR_V = ak.fill_none(goodjets.delta_r(candidateVjet), float("inf")) #for events with no V jet
+        dR_V = ak.fill_none(goodjets.delta_r(candidateVjet), float(999)) #for events with no V jet
         ak4_outside_objs = goodjets[((dR_higgs > 0.8) & (dR_leadlep > 0.4) & (dR_subleadlep > 0.4) & (dR_V > 0.8))]
 
         pairs = ak.combinations(ak4_outside_objs, 2, fields=["j1", "j2"])
@@ -456,7 +444,6 @@ class categorizer(SkimmerABC):
                 "lepdR",
                 "notZpeak",
                 "onegoodAK8",
-                "minjetkin",
                 "antiak4btagMedium",
                 "isvbf",
 
@@ -469,10 +456,10 @@ class categorizer(SkimmerABC):
                 "twoleptons",
                 "highmet",
                 "oppsign",
+                "sameflavor",
                 "lepdR",
                 "inZpeak",
                 "onegoodAK8",
-                "minjetkin",
                 "antiak4btagMedium",
                 "isvbf",
             ],
@@ -483,11 +470,10 @@ class categorizer(SkimmerABC):
                 "ak4jetveto",
                 "twoleptons",
                 "oppsign",
+                "sameflavor",
                 "lepdR",
                 "inZpeak",
                 "twogoodAK8",
-                "minjetkin",
-                "minVjetkin",
                 "antiak4btagMedium",
                 "isvbf",
             ],
@@ -559,6 +545,7 @@ class categorizer(SkimmerABC):
                 "VBFPair_mjj": vbf_mjj,
                 "VBFPair_deta": vbf_deta,
                 "MET": met.pt,
+                "LepPair_mass": ak.fill_none(lep_mass, -999.),
                 "LeadingLep_pt": leadinglep.pt,
                 "LeadingLep_flavor": leadinglep.flavor,
                 "LeadingLep_phi": leadinglep.phi,
