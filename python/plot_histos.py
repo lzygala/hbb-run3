@@ -37,7 +37,8 @@ import hist
 import matplotlib.pyplot as plt
 import mplhep as hep
 import yaml
-from plotting import ratio_plot
+from plotting import ratio_plot, c2vonly_plot
+from axis_info import column_to_axis
 
 from hbb.common_vars import LUMI
 
@@ -120,6 +121,52 @@ def plot_by_process(hists, category, year_str, outdir, region, style):
         fig.savefig(output_name, dpi=300, bbox_inches="tight")
         plt.close(fig)
 
+def plot_c2vsignal(hists, category, year_str, outdir, region, style):
+    """Plots a stacked histogram for each pt bin, with grouping handled by the style file."""
+
+    first_hist = next(iter(hists.values()))
+
+    # Project all raw histograms to 1D for this pt bin
+    histograms_to_plot = {}
+    for column in hists.keys():
+        for process, h in hists[column].items():
+            h_proj = h[:, category].project(column_to_axis[column])
+
+            if not "c2v" in process:
+                continue
+
+            histograms_to_plot[process] = h_proj
+
+        # Define the lists of signals and backgrounds using the final group names
+        # These names must have a corresponding entry in the style file with a 'contains' key
+        bkg_order = ["vbs-hvv-c2v1p0"]
+        signals = ["vbs-hvv-c2v1p5", "vbs-hvv-c2v2p0"]
+
+        legend_title = f"{category.capitalize()} Region"
+
+        fig, (ax, rax) = c2vonly_plot(
+            histograms_to_plot,
+            sigs=signals,
+            bkgs=bkg_order,
+            style=style,
+            sort_by_yield=True,
+            legend_title=legend_title,
+        )
+
+        luminosity = sum(LUMI[y] / 1000.0 for y in year_str.split("-") if y != "all")
+        hep.cms.label(
+            "Private Work",
+            data=True,
+            ax=ax,
+            lumi=luminosity,
+            lumi_format="{:0.1f}",
+            com=13.6,
+            year=year_str,
+        )
+
+        output_name = f"{outdir}/{year_str}_{region}_{category}_process_{column}.png"
+        fig.savefig(output_name, dpi=300, bbox_inches="tight")
+        plt.close(fig)
 
 # --- Function 2: Plotting Stacked by Flavor ---
 def plot_by_flavor(hists, category, year_str, outdir, region, style):
@@ -327,6 +374,10 @@ def main(args):
     elif args.plot_type == "qcd_shape":
         print(f"Plotting QCD pass/fail shapes for year: {year_str}...")
         plot_qcd_shapes(histograms, year_str, args.outdir, args.region, args.norm_type)
+    elif args.plot_type == "c2vsignal":
+        for category in ["pass", "fail"]:
+            print(f"Plotting C2V signal shapes for category: {category}, year: {year_str}...")
+            plot_c2vsignal(histograms, category, year_str, args.outdir, args.region, style)
 
 
 if __name__ == "__main__":
@@ -337,7 +388,7 @@ if __name__ == "__main__":
         type=str,
         required=True,
         nargs="+",
-        choices=["2022", "2022EE", "2023", "2023BPix"],
+        choices=["2022", "2022EE", "2023", "2023BPix", "2024"],
     )
     parser.add_argument("--indir", help="Input directory for .pkl files", type=str, required=True)
     parser.add_argument("--outdir", help="Output directory for plots", type=str, required=True)
@@ -346,8 +397,8 @@ if __name__ == "__main__":
         "--plot-type",
         help="Type of plot to produce",
         type=str,
-        default="process",
-        choices=["process", "flavor", "qcd_shape"],
+        default="c2vsignal",
+        choices=["process", "flavor", "qcd_shape", "c2vsignal"],
     )
     parser.add_argument(
         "--norm-type",
