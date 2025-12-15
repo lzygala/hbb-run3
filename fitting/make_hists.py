@@ -15,10 +15,6 @@ def fill_hists(outdict, events, region, reg_cfg, obs_cfg, qq_true, s, j_var=None
 
     h = hist.Hist(hist.axis.Regular(obs_cfg["nbins"], obs_cfg["min"], obs_cfg["max"], name=obs_cfg["name"], label=obs_cfg["name"]))
 
-    bins_list = reg_cfg["bins"]
-    bin_pname = reg_cfg["bin_pname"]
-    str_bin_br = reg_cfg["branch_name"]
-
     for _process_name, data in events.items():
 
         if j_var or s == "nominal":
@@ -28,21 +24,18 @@ def fill_hists(outdict, events, region, reg_cfg, obs_cfg, qq_true, s, j_var=None
         else:
             weight_val = data[s].astype(float) / data["sum_genWeight"].astype(float)
 
-        bin_br = data[str_bin_br]
         obs_br = data[obs_cfg["branch_name"]]
 
         Txbb = data["FatJet0_ParTPXbbVsQCD"]
-        Txcc = data["FatJet0_ParTPXccVsQCD"]
-        Txbbxcc = data["FatJet0_ParTPXbbXcc"]
         genf = data["GenFlavor"]
 
         pre_selection = (obs_br > obs_cfg["min"]) & (obs_br < obs_cfg["max"])
 
         selection_dict = {
-            "pass_bb": pre_selection & (Txbbxcc  > 0.82) & (Txbb  > Txcc),
-            "pass_cc": pre_selection & (Txbbxcc  > 0.82) & (Txcc  > Txbb),
-            "fail": pre_selection & (Txbbxcc <= 0.82),
-            "pass": pre_selection & (Txbbxcc  > 0.82)
+            "pass_A": pre_selection & (Txbb  > 0.8),
+            "pass_B": pre_selection & (Txbb  > 0.8),
+            "pass_C": pre_selection & (Txbb  < 0.8),
+            "pass_D": pre_selection & (Txbb  < 0.8),
         }
 
         cut_bb = (genf == 3)
@@ -62,27 +55,24 @@ def fill_hists(outdict, events, region, reg_cfg, obs_cfg, qq_true, s, j_var=None
                 outdict[name] += h.copy()
             return
 
-        for i in range(len(bins_list) - 1):
-            bin_cut = (bin_br > bins_list[i]) & (bin_br < bins_list[i+1]) & pre_selection
+        for category, selection in selection_dict.items():
+            if qq_true:
+                name = f"{region}_{category}_{_process_name}_{s}"
+                fill_h(name, (selection & cut_qq))
 
-            for category, selection in selection_dict.items():
-                if qq_true:
-                    name = f"{region}_{category}_{bin_pname}{i+1}_{_process_name}_{s}"
-                    fill_h(name, (selection & bin_cut & cut_qq))
+                name = f"{region}_{category}_{_process_name}bb_{s}"
+                fill_h(name, (selection & cut_bb))
 
-                    name = f"{region}_{category}_{bin_pname}{i+1}_{_process_name}bb_{s}"
-                    fill_h(name, (selection & bin_cut & cut_bb))
+                name = f"{region}_{category}_{_process_name}c_{s}"
+                fill_h(name, (selection & cut_c))
 
-                    name = f"{region}_{category}_{bin_pname}{i+1}_{_process_name}c_{s}"
-                    fill_h(name, (selection & bin_cut & cut_c))
+                name = f"{region}_{category}_{_process_name}light_{s}"
+                fill_h(name, (selection & cut_light))
 
-                    name = f"{region}_{category}_{bin_pname}{i+1}_{_process_name}light_{s}"
-                    fill_h(name, (selection & bin_cut & cut_light))
+            else:
 
-                else:
-
-                    name = f"{region}_{category}_{bin_pname}{i+1}_{_process_name}_{s}"
-                    fill_h(name, (selection & bin_cut))
+                name = f"{region}_{category}_{_process_name}_{s}"
+                fill_h(name, (selection & bin_cut))
 
     return outdict
 
@@ -99,8 +89,6 @@ def main(args):
         "FatJet0_pt",
         "FatJet0_msd",
         "FatJet0_ParTPXbbVsQCD",
-        "FatJet0_ParTPXccVsQCD",
-        "FatJet0_ParTPXbbXcc",
         "VBFPair_mjj",
         "GenFlavor",
     ]
@@ -134,11 +122,6 @@ def main(args):
         'btagSFlight',
     ]
 
-    cr_systs = {
-        "mucr" : ["muon_ID", "muon_ISO"],
-        "zgcr" : ["photon_ID"]
-    }
-
     data_dirs = {year: Path(path_to_dir) / year}
     if args.year == "Run3":
         data_dirs={
@@ -169,10 +152,8 @@ def main(args):
         pmap = json.load(f)
     
     filters = [
-       ("FatJet0_pt", ">", 450),
-       ("FatJet0_pt", "<", 1200),
-       ("VBFPair_mjj", ">", -2),
-       ("VBFPair_mjj", "<", 13000),
+       ("FatJet0_pt", ">", 250),
+       ("VBFPair_mjj", ">", 0),
     ]
 
     if not obs_cfg["branch_name"] in columns:
