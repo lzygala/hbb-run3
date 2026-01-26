@@ -19,7 +19,7 @@ import correctionlib
 import pickle
 from coffea.analysis_tools import Weights
 from coffea.nanoevents.methods import vector
-from coffea.nanoevents.methods.nanoaod import JetArray
+from coffea.nanoevents.methods.nanoaod import JetArray, MuonArray
 from coffea.jetmet_tools import CorrectedJetsFactory, CorrectedMETFactory, JECStack
 from coffea.lookup_tools import extractor
 
@@ -453,7 +453,7 @@ def add_btag_weights(weights: Weights, jets: JetArray, btagger: str, wp: str, ye
     )
     return nominal
 
-def add_muon_weights(weights: Weights, year: str, muons, pt_type: str):
+def add_muon_weights(weights: Weights, year: str, muons: MuonArray, pt_type: str, muon_type: str):
     """
     Corrections for medium pt GeV muons
     https://muon-wiki.docs.cern.ch/guidelines/corrections/#medium-pt-30-gev-pt-200-gev
@@ -461,19 +461,29 @@ def add_muon_weights(weights: Weights, year: str, muons, pt_type: str):
     Run 3 HLT Repo:
     https://gitlab.cern.ch/cms-muonPOG/muonefficiencies/-/tree/master/Run3
     """
-    id_key = "NUM_LooseID_DEN_TrackerMuons"
-    iso_key = "NUM_LoosePFIso_DEN_LooseID"
+    if muon_type == "loose":
+        id_key = "NUM_LooseID_DEN_TrackerMuons"
+        iso_key = "NUM_LoosePFIso_DEN_LooseID"
+    elif muon_type == "highpt":
+        id_key = "NUM_HighPtID_DEN_TrackerMuons"
+        iso_key = "NUM_LooseRelTkIso_DEN_HighPtID"  #TODO double check
+
     #TODO add trigger SFs
     
     cset = correctionlib.CorrectionSet.from_file(get_pog_json("muon", year))
+    m, nm = ak.flatten(muons), ak.num(muons, axis=1)
+    
+    def get_sf(cset_key, syst):
+        sf = cset[cset_key].evaluate(abs(m.eta), getattr(m, pt_type), syst)
+        return ak.prod(ak.unflatten(sf, nm), axis=-1)
 
-    id_nom = cset[id_key].evaluate(abs(muons.eta), getattr(muons, pt_type), "nominal")
-    id_up = cset[id_key].evaluate(abs(muons.eta), getattr(muons, pt_type), "systup")
-    id_down = cset[id_key].evaluate(abs(muons.eta), getattr(muons, pt_type), "systdown")
+    id_nom = get_sf(id_key, "nominal")
+    id_up = get_sf(id_key, "systup") 
+    id_down = get_sf(id_key, "systdown") 
 
-    iso_nom = cset[iso_key].evaluate(abs(muons.eta), getattr(muons, pt_type), "nominal")
-    iso_up = cset[iso_key].evaluate(abs(muons.eta), getattr(muons, pt_type), "systup")
-    iso_down = cset[iso_key].evaluate(abs(muons.eta), getattr(muons, pt_type), "systdown")
+    iso_nom = get_sf(iso_key, "nominal")
+    iso_up = get_sf(iso_key, "systup")
+    iso_down = get_sf(iso_key, "systdown")
 
     weights.add("muon_ID", id_nom, id_up, id_down)
     weights.add("muon_ISO", iso_nom, iso_up, iso_down)
