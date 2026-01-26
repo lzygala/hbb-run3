@@ -495,6 +495,7 @@ class categorizer(SkimmerABC):
         zmm_muons = highptmuon[:, :2]   #Collection to pass for sfs
         zmm_lead = ak.firsts(zmm_muons[:, 0:1])
         zmm_sublead = ak.firsts(zmm_muons[:, 1:2])
+        nmuons_zmm = ak.num(highptmuon, axis=1)
 
         zmm_mll = (zmm_lead + zmm_sublead).mass
         zmm_charge = zmm_lead.charge * zmm_sublead.charge   # >0 same sign, <0 opp sign
@@ -510,7 +511,8 @@ class categorizer(SkimmerABC):
 
         selection.add("noleptons", (nmuons == 0) & (nelectrons == 0))
         selection.add("onemuon", (nmuons == 1) & (nelectrons == 0))
-        selection.add("twomuon", (nmuons == 2) & (nelectrons == 0))
+        selection.add("twoloosemuon", (nmuons == 2) & (nelectrons == 0))
+        selection.add("twomuon_zmm", (nmuons_zmm == 2) & (nelectrons == 0))
         selection.add(
             "muonkin_leadzmm", (getattr(zmm_lead, self._mupt_type) > 60.0)
         )
@@ -710,7 +712,8 @@ class categorizer(SkimmerABC):
             ],
             "control-zmumu": [
                 "muontrigger",
-                "twomuon",
+                "twoloosemuon",
+                "twomuon_zmm",
                 "muonkin_leadzmm",
                 "muonpairkin_zmm",
                 "nak8_zmm",
