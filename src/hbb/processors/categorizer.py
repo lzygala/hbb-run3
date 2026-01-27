@@ -241,20 +241,16 @@ class categorizer(SkimmerABC):
         """
         return {var: self.process_shift(events, var) for var in total_variations}
 
-    def add_weights(
-        self, weights, events, dataset, btag_jets=None, muons=None, photons=None, muon_type=""
-    ) -> tuple[dict, dict]:
-        """Adds weights and variations, saves totals for all norm preserving weights and variations"""
+    def add_common_weights(self, weights, events, dataset):
+        """
+        Add weights that are not region specific
+        """
+
         weights.add("genweight", events.genWeight)
 
-        btag_SF = ak.ones_like(events.run)
         if not self._skip_syst:
             add_pileup_weight(weights, self._year, events.Pileup.nPU)
             add_ps_weight(weights, events.PSWeight)
-            if not self._btag_eff and btag_jets is not None:
-                btag_SF = add_btag_weights(
-                    weights, btag_jets, self._btagger, self._btag_wp, self._year, dataset
-                )
 
             # Easier to save nominal weights for rest of MC with all of the syst names for grabbing columns in post-processing
             flag_syst = ("Hto2B" in dataset) or ("Hto2C" in dataset) or ("VBFZto" in dataset)
@@ -266,25 +262,67 @@ class categorizer(SkimmerABC):
                 weights, getattr(events, "LHEScaleWeight", None) if flag_syst else None
             )
 
+        return
+
+    def add_region_weights(
+        self, region, weights, events, dataset, btag_jets=None, muons=None, muon_type="", photons=None
+        ):
+        """
+        Add weights that are region specific, depending on objects queried.
+        Weights will be differentiated by "REGION{region}_" , which will be used for sorting in the partial_weight call
+        """
+
+        weight_str = f"REGION{region}_"
+
+        btag_SF = ak.ones_like(events.run)
+        if not self._skip_syst:
+
+            if not self._btag_eff and btag_jets is not None:
+                btag_SF = add_btag_weights(
+                    weights, btag_jets, self._btagger, self._btag_wp, self._year, dataset, alt_str=weight_str
+                )
+
             if muons is not None:
-                add_muon_weights(weights, self._year, muons, self._mupt_type, muon_type)
+                add_muon_weights(weights, self._year, muons, self._mupt_type, muon_type, alt_str=weight_str)
+
             if photons is not None:
-                add_photon_weights(weights, self._year, photons)
+                add_photon_weights(weights, self._year, photons, alt_str=weight_str)
+
+        return btag_SF
+
+    def get_weight_dict(self, region, weights, events, dataset) -> tuple[dict, dict]:
+        """
+        Calculate the partial weights and the systematic variations for specified region.
+        Saved to dictionary to be output in skim files.
+        """
+
+        #Sort the region specific weights
+        include_weights = []
+        for weight_key in weights._weights.keys():
+            if "REGION" in weight_key:
+                if region in weight_key:
+                    include_weights.append(weight_key)
+            else:
+                include_weights.append(weight_key)
 
         logger.debug("weights", extra=weights._weights.keys())
-        # logger.debug(f"Weight statistics: {weights.weightStatistics!r}")
-
         # dictionary of all weights and variations
         weights_dict = {}
         # dictionary of total # events for norm preserving variations for normalization in postprocessing
         totals_dict = {}
 
         # nominal
-        weights_dict["weight"] = weights.weight()
+        weights_dict["weight"] = weights.partial_weight(include=include_weights)
 
         # systematics
+        print(weights._weights.keys())
         for systematic in weights.variations:
-            weights_dict[systematic] = weights.weight(modifier=systematic)
+            if "REGION" in systematic:
+                if region in systematic:
+                    syst_dict = systematic.replace(f"REGION{region}_", "")
+                    weights_dict[syst_dict] = weights.partial_weight(include=include_weights, modifier=systematic)
+            else:
+                weights_dict[systematic] = weights.partial_weight(include=include_weights, modifier=systematic)
 
         ###################### Normalization (Step 1) ######################
         # strip the year from the dataset name
@@ -295,9 +333,9 @@ class categorizer(SkimmerABC):
             weights_dict[key] = val * weight_norm
 
         # save the unnormalized weight, to confirm that it's been normalized in post-processing
-        weights_dict["weight_noxsec"] = weights.weight()
+        weights_dict["weight_noxsec"] = weights.partial_weight(include=include_weights)
 
-        return weights_dict, totals_dict, btag_SF
+        return weights_dict, totals_dict
 
     def process_shift(self, events, shift_name):
 
@@ -306,9 +344,6 @@ class categorizer(SkimmerABC):
         selection = PackedSelection()
         output = self.make_output() if not self._btag_eff else self.make_btag_output()
         weights = Weights(None, storeIndividual=True)
-        weights_mu = Weights(None, storeIndividual=True)
-        weights_gamma = Weights(None, storeIndividual=True)
-        weights_zmm = Weights(None, storeIndividual=True)
         if shift_name == "nominal" and not isRealData and not self._btag_eff:
             output["sumw"][dataset] = ak.sum(events.genWeight)
 
@@ -493,6 +528,7 @@ class categorizer(SkimmerABC):
             # TODO figure this out later
 
         zmm_muons = highptmuon[:, :2]   #Collection to pass for sfs
+        zmm_muons = zmm_muons[getattr(zmm_muons, self._mupt_type) > 30.0]
         zmm_lead = ak.firsts(zmm_muons[:, 0:1])
         zmm_sublead = ak.firsts(zmm_muons[:, 1:2])
         nmuons_zmm = ak.num(highptmuon, axis=1)
@@ -611,22 +647,29 @@ class categorizer(SkimmerABC):
             genflavor = ak.zeros_like(candidatejet.pt)
             genBosonPt = ak.zeros_like(candidatejet.pt)
         else:
+
+            self.add_common_weights(weights, events, dataset)
             # signal regions
-            weights_dict, totals_temp, btag_SF = self.add_weights(
-                weights, events, dataset, ak4_opphem_ak8
+            btag_SF = self.add_region_weights(
+                "signal", weights, events, dataset, btag_jets=ak4_opphem_ak8
             )
             # muon region
-            weights_dict_mu, totals_temp_mu, btag_SF_mu = self.add_weights(
-                weights_mu, events, dataset, ak4_outside_ak8, muons=ttbarmuon_sf, muon_type="loose"
+            btag_SF_mu = self.add_region_weights(
+                "control-tt", weights, events, dataset, btag_jets=ak4_outside_ak8, muons=ttbarmuon_sf, muon_type="loose"
             )
             # gamma region
-            weights_dict_gamma, totals_temp_gamma, btag_SF_gamma = self.add_weights(
-                weights_gamma, events, dataset, ak4_outside_ak8, photons=vgammaphoton
+            btag_SF_gamma = self.add_region_weights(
+                "control-zgamma", weights, events, dataset, btag_jets=ak4_outside_ak8, photons=vgammaphoton
             )
-            # zmumu muon region
-            weights_dict_zmm, totals_temp_zmm, btag_SF_zmm = self.add_weights(
-                weights_zmm, events, dataset, muons=zmm_muons, muon_type="highpt"
+            # zmumu muon region 
+            btag_SF_zmm = self.add_region_weights(
+                "control-zmumu", weights, events, dataset, muons=zmm_muons, muon_type="highpt"
             )
+
+            weights_dict, totals_temp = self.get_weight_dict("signal", weights, events, dataset)
+            weights_dict_mu, totals_temp_mu = self.get_weight_dict("control-tt", weights, events, dataset)
+            weights_dict_gamma, totals_temp_gamma = self.get_weight_dict("control-zgamma", weights, events, dataset)
+            weights_dict_zmm, totals_temp_zmm = self.get_weight_dict("control-zmumu", weights, events, dataset)
 
             for d, gen_func in gen_selection_dict.items():
                 if d in dataset:
@@ -1004,6 +1047,7 @@ class categorizer(SkimmerABC):
                             skim(region, ak.zip(energy_var_array, depth_limit=1))
                         else:
                             if "signal" in region:
+                                continue
                                 skim(
                                     region,
                                     ak.zip({**energy_var_array, **weights_dict}, depth_limit=1),

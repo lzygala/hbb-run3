@@ -356,7 +356,7 @@ def correct_met(met, jets: JetArray):
 
     return corrected_met
 
-def add_btag_weights(weights: Weights, jets: JetArray, btagger: str, wp: str, year: str, dataset: str):
+def add_btag_weights(weights: Weights, jets: JetArray, btagger: str, wp: str, year: str, dataset: str, alt_str: str):
     """
     Apply btag event scale factor for AK4 jets queried
     Using BTV fixed WP recommendations
@@ -409,51 +409,51 @@ def add_btag_weights(weights: Weights, jets: JetArray, btagger: str, wp: str, ye
     weight_b = calc_weight( eff_b, get_sf(jets_b, "comb", "central"), pass_b )
     weight_c = calc_weight( eff_c, get_sf(jets_c, "comb", "central"), pass_c )
 
-    weights.add('btagLightSF', weight_l)
-    weights.add('btagBSF', weight_b)
-    weights.add('btagCSF', weight_c)
+    weights.add(f'{alt_str}btagLightSF', weight_l)
+    weights.add(f'{alt_str}btagBSF', weight_b)
+    weights.add(f'{alt_str}btagCSF', weight_c)
     
     nominal = weight_l * weight_b * weight_c
 
     weights.add(
-        f"btagSFlight_{year}",
+        f"{alt_str}btagSFlight_{year}",
         ak.ones_like(nominal),
         weightUp=calc_weight(eff_l, get_sf(jets_l, "light", "up"), pass_l),
         weightDown=calc_weight(eff_l, get_sf(jets_l, "light", "down"), pass_l),
     )
     weights.add(
-        f"btagSFb_{year}",
+        f"{alt_str}btagSFb_{year}",
         ak.ones_like(nominal),
         weightUp=calc_weight(eff_b, get_sf(jets_b, "comb", "up"), pass_b),
         weightDown=calc_weight(eff_b, get_sf(jets_b, "comb", "down"), pass_b),
     )
     weights.add(
-        f"btagSFc_{year}",
+        f"{alt_str}btagSFc_{year}",
         ak.ones_like(nominal),
         weightUp=calc_weight(eff_c, get_sf(jets_c, "comb", "up"), pass_c),
         weightDown=calc_weight(eff_c, get_sf(jets_c, "comb", "down"), pass_c),
     )
     weights.add(
-        'btagSFlight_correlated', 
+        f'{alt_str}btagSFlight_correlated', 
         ak.ones_like(nominal),
         weightUp=calc_weight(eff_l, get_sf(jets_l, "light", "up_correlated"), pass_l),
         weightDown=calc_weight(eff_l, get_sf(jets_l, "light", "down_correlated"), pass_l),
     )
     weights.add(
-        'btagSFb_correlated', 
+        f'{alt_str}btagSFb_correlated', 
         ak.ones_like(nominal),
         weightUp=calc_weight(eff_b, get_sf(jets_b, "comb", "up_correlated"), pass_b),
         weightDown=calc_weight(eff_b, get_sf(jets_b, "comb", "down_correlated"), pass_b),
     )
     weights.add(
-        'btagSFc_correlated', 
+        f'{alt_str}btagSFc_correlated', 
         ak.ones_like(nominal),
         weightUp=calc_weight(eff_c, get_sf(jets_c, "comb", "up_correlated"), pass_c),
         weightDown=calc_weight(eff_c, get_sf(jets_c, "comb", "down_correlated"), pass_c),
     )
     return nominal
 
-def add_muon_weights(weights: Weights, year: str, muons: MuonArray, pt_type: str, muon_type: str):
+def add_muon_weights(weights: Weights, year: str, muons: MuonArray, pt_type: str, muon_type: str, alt_str: str):
     """
     Corrections for medium pt GeV muons
     https://muon-wiki.docs.cern.ch/guidelines/corrections/#medium-pt-30-gev-pt-200-gev
@@ -485,12 +485,12 @@ def add_muon_weights(weights: Weights, year: str, muons: MuonArray, pt_type: str
     iso_up = get_sf(iso_key, "systup")
     iso_down = get_sf(iso_key, "systdown")
 
-    weights.add("muon_ID", id_nom, id_up, id_down)
-    weights.add("muon_ISO", iso_nom, iso_up, iso_down)
+    weights.add(f"{alt_str}muon_ID", id_nom, id_up, id_down)
+    weights.add(f"{alt_str}muon_ISO", iso_nom, iso_up, iso_down)
     
     return
 
-def add_photon_weights(weights: Weights, year: str, photons):
+def add_photon_weights(weights: Weights, year: str, photons, alt_str: str):
     """
     Corrections for tight ID photons
     https://twiki.cern.ch/twiki/bin/view/CMS/EgammSFandSSRun3
@@ -515,7 +515,7 @@ def add_photon_weights(weights: Weights, year: str, photons):
     id_up = cset[id_key].evaluate(year_map[year], "sfup", "Tight", photons.eta, photons.pt)
     id_down = cset[id_key].evaluate(year_map[year], "sfdown", "Tight", photons.eta, photons.pt)
 
-    weights.add("photon_ID", id_nom, id_up, id_down)
+    weights.add(f"{alt_str}photon_ID", id_nom, id_up, id_down)
 
     return
 
