@@ -253,14 +253,15 @@ class categorizer(SkimmerABC):
             add_ps_weight(weights, events.PSWeight)
 
             # Easier to save nominal weights for rest of MC with all of the syst names for grabbing columns in post-processing
-            flag_syst = ("Hto2B" in dataset) or ("Hto2C" in dataset) or ("VBFZto" in dataset)
-            add_pdf_weight(weights, getattr(events, "LHEPdfWeight", None) if flag_syst else None)
-            add_scalevar_7pt(
-                weights, getattr(events, "LHEScaleWeight", None) if flag_syst else None
-            )
-            add_scalevar_3pt(
-                weights, getattr(events, "LHEScaleWeight", None) if flag_syst else None
-            )
+            # Need to fix
+            # flag_syst = ("Hto2B" in dataset) or ("Hto2C" in dataset) or ("VBFZto" in dataset)
+            # add_pdf_weight(weights, getattr(events, "LHEPdfWeight", None) if flag_syst else None)
+            # add_scalevar_7pt(
+            #     weights, getattr(events, "LHEScaleWeight", None) if flag_syst else None
+            # )
+            # add_scalevar_3pt(
+            #     weights, getattr(events, "LHEScaleWeight", None) if flag_syst else None
+            # )
 
         return
 
@@ -279,7 +280,7 @@ class categorizer(SkimmerABC):
 
             if not self._btag_eff and btag_jets is not None:
                 btag_SF = add_btag_weights(
-                    weights, btag_jets, self._btagger, self._btag_wp, self._year, dataset, alt_str=weight_str
+                    weights, btag_jets, self._btagger, self._btag_wp, self._year, alt_str=weight_str
                 )
 
             if muons is not None:
@@ -389,13 +390,13 @@ class categorizer(SkimmerABC):
         jec_key = f"{self._year}_{mc_run}"
 
         fatjets = set_ak8jets(
-            events.FatJet, self._year, self._nano_version, events.Rho.fixedGridRhoFastjetAll
+            events.FatJet, isRealData, self._year, self._nano_version, events.Rho.fixedGridRhoFastjetAll
         )
         jets = set_ak4jets(
-            events.Jet, self._year, self._nano_version, events.Rho.fixedGridRhoFastjetAll
+            events.Jet, isRealData, self._year, self._nano_version, events.Rho.fixedGridRhoFastjetAll
         )
 
-        if self._nano_version == "v14_private":
+        if self._nano_version == "v14_private" or self._nano_version == "v15":
             # subjets in PFNano reprocessing break the fatjet jercs for whatever reason
             keep_fields = [
                 f
