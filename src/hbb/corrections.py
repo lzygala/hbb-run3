@@ -16,6 +16,7 @@ import awkward as ak
 import dask_awkward as dak
 import numpy as np
 import correctionlib
+import correctionlib.schemav2
 import pickle
 from coffea.analysis_tools import Weights
 from coffea.nanoevents.methods import vector
@@ -26,6 +27,7 @@ from coffea.lookup_tools import extractor
 from hbb.MuonScaRe import pt_resol, pt_scale, pt_resol_var, pt_scale_var 
 from hbb.jerc_eras import jec_eras,jer_eras, jec_mc, jer_mc, jec_data, fatjet_jerc_keys, jet_jerc_keys
 from hbb.taggers import b_taggers
+from hbb.EWHiggs_corrections import theory_xs, xs_ewkcorr, ewh_ptbin
 
 ak.behavior.update(vector.behavior)
 package_path = str(pathlib.Path(__file__).parent.parent.resolve())
@@ -219,6 +221,67 @@ def add_scalevar_3pt(weights: Weights, var_weights):
         print("Scale variation structure unexpected:", e)
 
     weights.add('scalevar_3pt', nom, up, down)
+
+def get_EWHiggs_corrector(prodmode: str):
+    #Create the corrector for the EW Higgs xs corrections based on selected production mode
+
+    # make the bins exclusive
+    def make_excl(th):
+        excl = -1*np.diff(th)
+        return np.append(excl,[th[-1]])
+
+    noewcorr = make_excl(theory_xs[prodmode])
+    yesewcorr = make_excl(np.multiply(theory_xs[prodmode], 1 + xs_ewkcorr[prodmode]))
+
+    # xs scale factors
+    weights = np.divide(yesewcorr,noewcorr)
+
+    # correction input variable
+    hptvar = correctionlib.schemav2.Variable(
+        name="hpt",
+        type="real",
+        description="Generated Higgs boson pT"
+    )
+
+    corr = correctionlib.schemav2.Correction(
+        name=prodmode,
+        version=1,
+        description=f"Electroweak correction to {prodmode} Higgs production",
+        inputs=[hptvar],
+        output=correctionlib.schemav2.Variable(name="out", type="real", description="Multiplicative k-factor"),
+        data={
+            "nodetype": "binning",
+            "input": "hpt",
+            "edges": list(ewh_ptbin),
+            "content": list(weights),
+            "flow": "clamp",
+        },
+    )
+
+    return corr
+
+def add_EWHiggs_weight(weights: Weights, dataset: str, genpart):
+    # Apply EW Higgs xs corrections
+
+    boson = genpart[
+        (genpart.pdgId == 25)
+        & genpart.hasFlags(["fromHardProcess", "isLastCopy"])
+    ]
+    boson_pt = ak.fill_none(boson.pt, 0.)
+
+    if "VBFH" in dataset:
+        prodmode = "VBF"
+    elif "WplusH" in dataset or "WminusH" in dataset or "ZH" in dataset:
+        prodmode = "VH"
+    elif "ttH" in dataset:
+        prodmode = "ttH"
+    else:
+        return
+    
+    corr = get_EWHiggs_corrector(prodmode)
+    ewk_nominal = corr.to_evaluator().evaluate(boson_pt)
+
+    weights.add(f"{prodmode}_EW", ewk_nominal)
 
 # Jet Veto Maps
 # the JERC group recommends ALL analyses use these maps, as the JECs are derived excluding these zones.
