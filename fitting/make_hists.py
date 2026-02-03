@@ -91,7 +91,7 @@ def main(args):
     tag = args.tag
     do_systs = args.systs
 
-    path_to_dir = f"/eos/uscms/store/group/lpchbbrun3/lzygala/{tag}"
+    path_to_dir = f"/eos/uscms/store/group/lpchbbrun3/skims/{tag}"
     
     samples_qq = ['Wjets','Zjets','EWKW','EWKZ','EWKV']
     
