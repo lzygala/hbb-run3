@@ -91,7 +91,7 @@ def main(args):
     tag = args.tag
     do_systs = args.systs
 
-    path_to_dir = f"/eos/uscms/store/group/lpchbbrun3/skims/{tag}"
+    path_to_dir = f"/eos/uscms/store/group/lpchbbrun3/lzygala/{tag}"
     
     samples_qq = ['Wjets','Zjets','EWKW','EWKZ','EWKV']
     
@@ -116,13 +116,13 @@ def main(args):
     ]
 
     systs = [
-        'ISRPartonShower',
-        'FSRPartonShower', 
-        'aS_weight',
-        'PDF_weight',  
-        'PDFaS_weight', 
-        'scalevar_7pt', 
-        'scalevar_3pt',
+        # 'ISRPartonShower',
+        # 'FSRPartonShower', 
+        # 'aS_weight',
+        # 'PDF_weight',  
+        # 'PDFaS_weight', 
+        # 'scalevar_7pt', 
+        # 'scalevar_3pt',
         'pileup',
         'btagSFb_correlated',
         'btagSFc_correlated',
@@ -204,11 +204,12 @@ def main(args):
 
                             fill_hists(out_hists, events, reg, cfg, obs_cfg, (process in samples_qq), "nominal", var)
 
-                        if do_systs:
-                            if "data" not in process:
-                                for syst in c_systs_full:
-                                    fill_hists(out_hists, events, reg, cfg, obs_cfg, (process in samples_qq), f"{syst}", var)
+                            if do_systs:
+                                if "data" not in process:
+                                    for syst in c_systs_full:
+                                        fill_hists(out_hists, events, reg, cfg, obs_cfg, (process in samples_qq), f"{syst}", var)
 
+                        if do_systs:
                             if var:   #energy variations
                                 for direction in ["Up", "Down"]:
                                     var_jerc = f"{var}{direction}"
