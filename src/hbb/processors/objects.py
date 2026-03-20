@@ -65,7 +65,7 @@ def highpt_muons(muons: MuonArray, pt_type):
 
     sel = (
         (getattr(loosemuons, pt_type) > 30)
-        & (loosemuons.highPtId)
+        & (loosemuons.highPtId == 2) #1=pass tracker highPtId, 2=pass global highPtId
         & (loosemuons.isGlobal)
     )
     return loosemuons[sel]
