@@ -127,30 +127,18 @@ def add_pileup_weight(weights: Weights, year: str, nPU):
 
     weights.add("pileup", values["nominal"], values["up"], values["down"])
 
-def add_pdf_weight(weights: Weights, pdf_weights):
+def add_pdf_weight(gen_weights, pdf_weights):
     """
     Apply pdf weight variation for standard Hessian set
     """
 
-    nom = ak.ones_like(weights.weight())
-    if pdf_weights is None:
-        weights.add('PDF_weight', nom)
-        weights.add('aS_weight', nom)
-        weights.add('PDFaS_weight', nom)
-        return
-                               
-    arg = pdf_weights[:,1:-2]-(ak.ones_like(weights.weight())[:, None] * ak.Array(np.ones(100)))
-    summed = ak.sum(np.square(arg),axis=1)
-    pdf_unc = np.sqrt( (1./99.) * summed )
-    weights.add('PDF_weight', nom, pdf_unc + nom)
+    out_pdf = {}
+    sum_pdf = {}
+    for i in range(len(pdf_weights[0])):
+        out_pdf[f"weight_pdf_{i}"] = pdf_weights[:, i]
+        sum_pdf[f"sumweight_pdf_{i}"] = ak.sum(pdf_weights[:, i] * gen_weights)
 
-    # alpha_S weights
-    as_unc = 0.5*(pdf_weights[:,102] - pdf_weights[:,101])
-    weights.add('aS_weight', nom, as_unc + nom)
-
-    # PDF + alpha_S weights
-    pdfas_unc = np.sqrt( np.square(pdf_unc) + np.square(as_unc) )
-    weights.add('PDFaS_weight', nom, pdfas_unc + nom) 
+    return {**out_pdf, **sum_pdf}
 
 def add_ps_weight(weights: Weights, ps_weights):
     """
@@ -176,51 +164,30 @@ def add_ps_weight(weights: Weights, ps_weights):
     weights.add("ISRPartonShower", nom, up_isr, down_isr)
     weights.add("FSRPartonShower", nom, up_fsr, down_fsr)
 
-def add_scalevar_7pt(weights: Weights, var_weights):
+def add_scalevar(gen_weights, var_weights, structure = "7pt"):
     """
-    QCD scale variations for the case muF = muR
-    For application to high pt ggf and ttH higgs production mc
+    QCD scale variations according to recommendations by the LHCXSWG
+    For application to:
+         high pt ggf and ttH higgs production mc : muF = muR
+         high pt VBF and VH higgs production mc : muF^2 = muR^2
     Recommendation by LHCXSWG cds.cern.ch/record/2669113
     """
-    nom   = ak.ones_like(weights.weight())
-    up    = ak.ones_like(nom)
-    down  = ak.ones_like(nom)
+    var_map = {
+        "3pt" : [0, 4, 8],             # case where muF^2 = muR^2
+        "7pt" : [0, 1, 3, 4, 5, 7, 8]  # case where muF = muR 
+    }
 
-    if var_weights is None:
-        weights.add('scalevar_7pt', nom)
-        return
- 
+    out_lhe = {}
+    sum_lhe = {}
     try:
-        selected = var_weights[:, [0, 1, 3, 5, 7, 8]]
-        up = ak.max(selected, axis=1)
-        down = ak.min(selected, axis=1)
+        for var in var_map[structure]:
+            out_lhe[f"weight_scalevar_{structure}_{var}"] = var_weights[:, var]
+            sum_lhe[f"sumweight_scalevar_{structure}_{var}"] = ak.sum(var_weights[:, var] * gen_weights)
+            
     except Exception as e:
         print("Scale variation structure unexpected:", e)
 
-    weights.add('scalevar_7pt', nom, up, down)
-
-def add_scalevar_3pt(weights: Weights, var_weights):
-    """
-    QCD scale variations for the case muF^2 = muR^2
-    For application to high pt VBF and VH higgs production mc
-    Recommendation by LHCXSWG cds.cern.ch/record/2669113
-    """
-    nom   = ak.ones_like(weights.weight())
-    up    = ak.ones_like(nom)
-    down  = ak.ones_like(nom)
-
-    if var_weights is None:
-        weights.add('scalevar_3pt', nom)
-        return
-
-    try:
-        selected = var_weights[:, [0, 8]]
-        up = ak.max(selected, axis=1)
-        down = ak.min(selected, axis=1)
-    except Exception as e:
-        print("Scale variation structure unexpected:", e)
-
-    weights.add('scalevar_3pt', nom, up, down)
+    return {**out_lhe, **sum_lhe}
 
 def get_EWHiggs_corrector(prodmode: str):
     #Create the corrector for the EW Higgs xs corrections based on selected production mode

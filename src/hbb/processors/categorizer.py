@@ -20,8 +20,8 @@ from hbb.corrections import (
     add_photon_weights,
     add_pileup_weight,
     add_ps_weight,
-    add_scalevar_3pt,
-    add_scalevar_7pt,
+    add_scalevar,
+    add_EWHiggs_weight,
     apply_jerc,
     correct_met,
     correct_muons,
@@ -252,17 +252,9 @@ class categorizer(SkimmerABC):
             add_pileup_weight(weights, self._year, events.Pileup.nPU)
             add_ps_weight(weights, events.PSWeight)
 
-            # Easier to save nominal weights for rest of MC with all of the syst names for grabbing columns in post-processing
-            # Need to fix
-            # flag_syst = ("Hto2B" in dataset) or ("Hto2C" in dataset) or ("VBFZto" in dataset)
-            # add_pdf_weight(weights, getattr(events, "LHEPdfWeight", None) if flag_syst else None)
-            # add_scalevar_7pt(
-            #     weights, getattr(events, "LHEScaleWeight", None) if flag_syst else None
-            # )
-            # add_scalevar_3pt(
-            #     weights, getattr(events, "LHEScaleWeight", None) if flag_syst else None
-            # )
-
+            # if genHiggs is not None:
+            #     add_EWHiggs_weight(weights, dataset, genHiggs)
+            
         return
 
     def add_region_weights(
@@ -291,11 +283,19 @@ class categorizer(SkimmerABC):
 
         return btag_SF
 
-    def get_weight_dict(self, region, weights, dataset) -> tuple[dict, dict]:
+    def get_weight_dict(self, events, region, weights, dataset) -> tuple[dict, dict]:
         """
         Calculate the partial weights and the systematic variations for specified region.
         Saved to dictionary to be output in skim files.
         """
+
+        if not self._skip_syst:
+            # Saving variations and sums in the output vector for signal datasets
+            flag_syst = ("Hto2B" in dataset) or ("Hto2C" in dataset) or ("VBFZto" in dataset)
+            if flag_syst:
+                pdf_dict = add_pdf_weight(events.genWeight, events.LHEScaleWeight)
+                scalevar_3_dict = add_scalevar(events.genWeight, events.LHEScaleWeight, structure = "3pt")
+                scalevar_7_dict = add_scalevar(events.genWeight, events.LHEScaleWeight, structure = "7pt")
 
         #Sort the region specific weights
         include_weights = []
@@ -335,7 +335,9 @@ class categorizer(SkimmerABC):
         # save the unnormalized weight, to confirm that it's been normalized in post-processing
         weights_dict["weight_noxsec"] = weights.partial_weight(include=include_weights)
 
-        return weights_dict, totals_dict
+        weights_dict_out = {**weights_dict, **pdf_dict, **scalevar_3_dict, **scalevar_7_dict}
+
+        return weights_dict_out, totals_dict
 
     def process_shift(self, events, shift_name):
 
@@ -664,10 +666,10 @@ class categorizer(SkimmerABC):
                 "control-zmumu", weights, events, muons=zmm_muons, muon_type="highpt"
             )
 
-            weights_dict, totals_temp = self.get_weight_dict("signal", weights, dataset)
-            weights_dict_mu, totals_temp_mu = self.get_weight_dict("control-tt", weights, dataset)
-            weights_dict_gamma, totals_temp_gamma = self.get_weight_dict("control-zgamma", weights, dataset)
-            weights_dict_zmm, totals_temp_zmm = self.get_weight_dict("control-zmumu", weights, dataset)
+            weights_dict, totals_temp = self.get_weight_dict(events, "signal", weights, dataset)
+            weights_dict_mu, totals_temp_mu = self.get_weight_dict(events, "control-tt", weights, dataset)
+            weights_dict_gamma, totals_temp_gamma = self.get_weight_dict(events, "control-zgamma", weights, dataset)
+            weights_dict_zmm, totals_temp_zmm = self.get_weight_dict(events, "control-zmumu", weights, dataset)
 
             for d, gen_func in gen_selection_dict.items():
                 if d in dataset:
