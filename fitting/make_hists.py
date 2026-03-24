@@ -19,23 +19,47 @@ import numpy as np
 import uproot
 
 from hbb import utils
+from template_utils import (
+    REGION_MAP,
+    get_pdf_list,
+    get_scale_list,
+    scalevar_process,
+    perform_analysis,
+    export_to_root,
+    set_rootfile,
+    accumulate,
+    export_to_pkl
+)
 
-# --- REGION DIRECTORY MAPPING ---
-# Maps the keys in setup.json to the actual directory names on EOS
-REGION_MAP = {
-    "zgcr": "control-zgamma",
-    "mucr": "control-tt",
-    "vh": "signal-vh",
-    "vbf": "signal-vbf",
-    "ggf": "signal-ggf",
-}
+folder_systs = ["JES", "JER", "UES", "MuonPTScale", "MuonPTRes"]
+analysis_systs = ["pdf", "scalevar7pt", "scalevar3pt"]
 
-
-def fill_binned_histogram(
-    h, events, region_key, setup, bin_branch="FatJet0_pt", weight_syst="nominal"
+def fill_binned_histogram(outdict_pkl, outdict_templates,
+    events, region_key, setup, args, in_syst="nominal"
 ):
+    samples_qq = setup.get("samples_qq", [])
+    
+    reg_cfg = setup["categories"][region_key]
+    bin_branch = reg_cfg.get("bin_branch", "FatJet0_pt")
+    bin_prefix = reg_cfg.get("bin_prefix", "pt")
+    bins_list = reg_cfg["bins"]
+
+    obs = setup["observable"]
+    axis_var = hist.axis.Regular(obs["nbins"], obs["min"], obs["max"], name=obs["name"], label=obs["name"])
+    axis_bin = hist.axis.Variable(np.array(bins_list), name=bin_prefix)  # Replaced axis_pt
+    axis_cat = hist.axis.StrCategory(["pass_bb", "pass_cc", "fail", "pass", "inclusive"], name="category")
+    axis_flav = hist.axis.IntCategory([0, 1, 2, 3], name="genflavor")
+
+    h_pkl = hist.Hist(axis_var, axis_bin, axis_cat, axis_flav)
+    h_rt = hist.Hist(axis_var)
+
+    is_folder = any(fs in in_syst for fs in folder_systs)
+    is_analysis_syst = any(ts in in_syst for ts in analysis_systs)
+    weight_syst = in_syst if not is_folder and not is_analysis_syst else "nominal"
+
     for process_name, data in events.items():
         is_data = "data" in process_name.lower()
+        should_split = any(s in process_name for s in samples_qq) and not is_data
 
         # --- 1. WEIGHTING LOGIC ---
         if not is_data and weight_syst != "nominal" and weight_syst in data.columns:
@@ -46,18 +70,20 @@ def fill_binned_histogram(
             weight_val = data["finalWeight"].astype(float)
 
         # --- 2. VARIABLE EXTRACTION ---
-        var_col = setup["observable"]["branch_name"]
+        var_col = obs["branch_name"]
         pt = data["FatJet0_pt"]
-        msd = data["FatJet0_msd"]
 
-        # Extract the dynamic binning variable
-        bin_data = data[bin_branch]
+        Txcc = data["FatJet0_ParTPXccVsQCD"]
+        Txbb = data["FatJet0_ParTPXbbVsQCD"]
+        Txbbxcc = data["FatJet0_ParTPXbbXcc"]
+
+        pt_min = setup.get("pt_min_scale", 450.0)
+        working_point = setup.get("working_point", 0.82)
 
         # Robust MET extraction from the parquet record
+        met_pt = np.zeros(len(data))
         if "MET" in data.columns:
             met_pt = data["MET"].pt if hasattr(data["MET"], "pt") else data["MET"]
-        else:
-            met_pt = np.zeros(len(data))
 
         dphi = np.nan
         if "Photon0_phi" in data.columns and "FatJet0_phi" in data.columns:
@@ -66,33 +92,19 @@ def fill_binned_histogram(
 
         var_series = dphi if var_col == "delta_phi_photon_jet" else data[var_col]
 
-        is_mc = "GenFlavor" in data.columns
         genflavordata = (
-            data["GenFlavor"].astype(np.int8) if is_mc else np.zeros(len(data), dtype=np.int8)
+            np.zeros(len(data), dtype=np.int8) if is_data else data["GenFlavor"].astype(np.int8)
         )
 
         # --- 3. SELECTION LOGIC ---
-        working_point = setup.get("working_point", 0.82)
-        obs_min, obs_max = setup["observable"]["min"], setup["observable"]["max"]
-        basic_cuts = (msd > obs_min) & (msd < obs_max)
+        basic_cuts = (var_series > obs["min"]) & (var_series < obs["max"])
 
-        # Pull the pt cut directly from the JSON
-        pt_min = setup.get("pt_min_scale", 450.0)
-
-        actual_reg_name = REGION_MAP.get(region_key, region_key)
-
-        if "zgamma" in actual_reg_name:
+        pre_selection = basic_cuts & (pt > pt_min)
+        if "zgcr" in region_key:
             # Specific Z-Gamma logic from Gabi's script
             trigger = data["Photon200"] | data["Photon110EB_TightID_TightIso"]
             topo_cuts = (dphi > 2.2) & (met_pt < 50) & (data["Photon0_pt"] > 120)
             pre_selection = basic_cuts & topo_cuts & trigger & (pt > pt_min)
-        else:
-            # Lara's Signal Region logic
-            pre_selection = basic_cuts & (pt > pt_min)
-
-        Txcc = data["FatJet0_ParTPXccVsQCD"]
-        Txbb = data["FatJet0_ParTPXbbVsQCD"]
-        Txbbxcc = data["FatJet0_ParTPXbbXcc"]
 
         selection_dict = {
             "pass_bb": pre_selection & (Txbbxcc > working_point) & (Txbb > Txcc),
@@ -102,52 +114,54 @@ def fill_binned_histogram(
             "inclusive": pre_selection,
         }
 
+        flavor_cuts = {
+            "": ((genflavordata == 1) | (genflavordata == 2)),
+            "bb": (genflavordata == 3),
+            "c": (genflavordata == 2),
+            "light": (genflavordata == 1)
+        }
+
         # --- 4. FILLING ---
+        def fill_h(name, sel):
+            factor = perform_analysis(data, sel, weight_val, in_syst) if is_analysis_syst else np.ones_like(bin_branch[sel])
+
+            h_rt.view()[:] = 0
+            h_rt.fill(
+                var_series[sel],
+                weight=weight_val[sel] * factor,
+            )
+            accumulate(outdict_templates, name, h_rt)
+
         for category, selection in selection_dict.items():
-            if category in h.axes["category"]:
-                h.fill(
-                    var_series[selection],
-                    bin_data[selection],  # using dynamic bin data here
-                    category=category,
-                    genflavor=genflavordata[selection],
-                    weight=weight_val[selection],
-                )
-    return h
+            if args.save_pkl:
+                if category in h_pkl.axes["category"]:
 
+                    # calculate theory uncertainties based on final region acceptance
+                    # Lara to Gabi : If you are cutting on these plots more in post-processing, then the theory systematics won't be correct
+                    # As they need to be calculated in their final region acceptances here 
+                    factor = perform_analysis(data, selection, weight_val, in_syst) if is_analysis_syst else np.ones_like(bin_branch[selection])
 
-def export_to_root(histograms, output_root_path, region_key, samples_qq, syst, data_key):
-    suffix = "nominal" if syst == "nominal" else syst
+                    h_pkl.fill(
+                        var_series[selection],
+                        bin_branch[selection],  # using dynamic bin data here
+                        category=category,
+                        genflavor=genflavordata[selection],
+                        weight=weight_val[selection] * factor,
+                    )
+                    accumulate(outdict_pkl, process_name, h_pkl)
 
-    # Ensure directory exists
-    output_root_path.parent.mkdir(parents=True, exist_ok=True)
+            if args.save_root:
+                for i in range(len(bins_list) - 1):
+                    bin_cut = (bin_branch > bins_list[i]) & (bin_branch < bins_list[i+1]) & pre_selection
+                    base_name = f"{region_key}_{category}_{bin_prefix}{i+1}_{process_name}"
+                    splits = flavor_cuts if should_split else {"": None}
 
-    # Use uproot.update for writing
-    # If the file doesn't exist, uproot.update will create it.
-    with uproot.update(output_root_path) as fout:
-        for process, h in histograms.items():
-            # Standard Combine naming for data
-            proc_name = "data_obs" if process == data_key else process
+                    for suffix, flavor_mask in splits.items():
+                        sel = selection & bin_cut & flavor_mask if flavor_mask is not None else selection & bin_cut
+                        name = f"{base_name}{suffix}_{in_syst}"
+                        fill_h(name, sel)
 
-            # Check if process should be split (e.g., Wjets, Zjets)
-            # and ensure we aren't trying to split the actual data stream
-            should_split = any(s in process for s in samples_qq) and "data" not in process.lower()
-
-            bin_axis = h.axes[1]
-            bin_prefix = bin_axis.name  # e.g., "pt" or "mjj"
-
-            for i_bin in range(len(bin_axis.edges) - 1):
-                # Dynamically construct the bin string, e.g., pt1 or mjj1
-                bin_str = f"{bin_prefix}{i_bin+1}"
-                for category in h.axes["category"]:
-                    base = f"{region_key}_{category}_{bin_str}_{proc_name}"
-
-                    if should_split:
-                        fout[f"{base}bb_{suffix}"] = h[:, i_bin, category, 3]
-                        fout[f"{base}c_{suffix}"] = h[:, i_bin, category, 2]
-                        fout[f"{base}light_{suffix}"] = h[:, i_bin, category, 1]    #1 = uds
-                    else:
-                        fout[f"{base}_{suffix}"] = h[:, i_bin, category, sum]
-
+    return outdict_pkl, outdict_templates
 
 def main(args):
     with Path(args.setup).open() as f:
@@ -157,59 +171,19 @@ def main(args):
         
     do_BDT_regions = setup.get("do_BDT_regions", False)
 
+    obs_name = setup["observable"]["name"]  # e.g., "msd"
+
+    output_root = Path(args.outdir) / args.tag / f"fitting_{args.year}_{obs_name}.root"
+    if args.save_root:
+        set_rootfile(output_root)
+
     for region_key, reg_cfg in setup["categories"].items():
         print("\n" + "=" * 50)
         print(f"STARTING REGION: {region_key}")
         print("=" * 50)
 
-        pt_bins = np.array(reg_cfg["bins"])
+        pkl_name = f"hists_{args.year}_{region_key}_{obs_name}_TMP.pkl"
 
-        # Get dynamic branch and prefix (fallback to pt if not defined in json)
-        bin_branch = reg_cfg.get("bin_branch", "FatJet0_pt")
-        bin_prefix = reg_cfg.get("bin_prefix", "pt")
-
-        obs = setup["observable"]
-        region_to_load = REGION_MAP.get(region_key, region_key)
-        if do_BDT_regions and not "control" in region_to_load:
-            region_to_load = region_to_load + "-BDT"
-
-        # Determine Data Stream (e.g., EGammadata for zgamma)
-        if "zgamma" in region_to_load:
-            data_map_key = "EGammadata"
-        elif "tt" in region_to_load:
-            data_map_key = "Muondata"
-        else:
-            data_map_key = "Jetdata"
-
-        folder_systs = ["JES", "JER", "UES", "MuonPTScale", "MuonPTRes"]
-        systs_to_run = ["nominal"]
-        if setup.get("do_systematics"):
-            for s in setup.get("active_systematics", []):
-                systs_to_run.extend([f"{s}Up", f"{s}Down"])
-
-        obs_name = setup["observable"]["name"]  # e.g., "msd"
-
-        output_root = Path(args.outdir) / f"fitting_{args.year}_{region_key}_{obs_name}.root"
-
-        # Ensure outdir exists
-        output_root.parent.mkdir(parents=True, exist_ok=True)
-
-        # Delete existing file to start fresh for this region
-        # (This avoids the errors by ensuring we never 'update' a corrupted or old file)
-        if output_root.exists():
-            print(f"Cleaning up existing file: {output_root}")
-            output_root.unlink()
-
-        # Initialize a fresh ROOT file
-        uproot.recreate(output_root).close()
-
-        # Update the axis_bin initialization for dynamic variable
-        axis_var = hist.axis.Regular(obs["nbins"], obs["min"], obs["max"], name=obs["name"])
-        axis_bin = hist.axis.Variable(pt_bins, name=bin_prefix)  # Replaced axis_pt
-        axis_cat = hist.axis.StrCategory(
-            ["pass_bb", "pass_cc", "fail", "pass", "inclusive"], name="category"
-        )
-        axis_flav = hist.axis.IntCategory([0, 1, 2, 3], name="genflavor")
 
         # Define columns to load
         cols = [
@@ -221,7 +195,20 @@ def main(args):
             "FatJet0_ParTPXbbXcc",
             "GenFlavor",
         ]
-        if data_map_key == "EGammadata":
+
+        # Ensure the dynamic bin branch is loaded
+        bin_branch = reg_cfg.get("bin_branch", "FatJet0_pt")
+        if bin_branch not in cols:
+            cols.append(bin_branch)
+
+        obs_branch = setup["observable"]["branch_name"]
+        if obs_branch not in cols:
+            cols.append(obs_branch)
+
+        # Determine Data Stream (e.g., EGammadata for zgamma)
+        data_map_key = "Jetdata"
+        if "zg" in region_key:
+            data_map_key = "EGammadata"
             cols += [
                 "Photon0_pt",
                 "Photon0_phi",
@@ -230,78 +217,90 @@ def main(args):
                 "Photon200",
                 "Photon110EB_TightID_TightIso",
             ]
+        elif "mu" in region_key:    #refactor for zmumu
+            data_map_key = "Muondata"
 
-        # Ensure the dynamic bin branch is loaded
-        if bin_branch not in cols:
-            cols.append(bin_branch)
+        do_folder_systs = ["nominal"]
+        if setup.get("do_systematics"):
+            active_syst = setup.get("active_systematics", [])
+            col_systs = [f"{s}{var}" for s in active_syst if s not in folder_systs for var in ("Up", "Down")]
+            do_folder_systs = ["nominal"] + [f"{s}{var}" for s in active_syst if s in folder_systs for var in ("Up", "Down")]
 
-        obs_branch = setup["observable"]["branch_name"]
-        if obs_branch not in cols:
-            cols.append(obs_branch)
+        for variation in do_folder_systs:
+            print(f"\n>>> Running Energy Variation Systematic Pass: {syst}")
 
-        for syst in systs_to_run:
-            print(f"\n>>> Running Systematic Pass: {syst}")
-            is_folder = any(fs in syst for fs in folder_systs)
-            variation = syst if is_folder else "nominal"
-
-            histograms = {}
+            histograms_pkl, histograms_rt = {}, {}
             for process, datasets in pmap.items():
-                if "data" in process.lower() and process != data_map_key:
-                    continue
-                if process == data_map_key and syst != "nominal":
+                isRealData = "data" in process.lower()
+                if isRealData and (process != data_map_key or variation != "nominal"):
                     continue
 
-                h = hist.Hist(axis_var, axis_bin, axis_cat, axis_flav)
+                col_systs_proc, syst_loop = col_systs, col_systs
+                if setup.get("do_systematics"):
+                    if process in scalevar_process:
+                        if "pdf" in col_systs:
+                            col_systs_proc.append(get_pdf_list(103))
+                            syst_loop.append(["pdfUp", "pdfDown"])
+                        elif "scalevar" in col_systs:
+                            col_systs_proc.append(get_scale_list(scalevar_process[process]))
+                            syst_loop.append([f"scalevar{scalevar_process[process]}Up", f"scalevar{scalevar_process[process]}Down"])
+
+
+                load_cols = cols
+                if variation is not "nominal" and not isRealData:
+                    load_cols = cols+col_systs_proc
                 for dataset in datasets:
                     events = utils.load_samples(
                         data_dir=Path(
                             f"/eos/uscms/store/group/lpchbbrun3/skims/{args.tag}/{args.year}"
                         ),
                         samples={process: [dataset]},
-                        columns=cols,
-                        region=region_to_load,
+                        columns=load_cols,
+                        region=REGION_MAP[region_key] if not do_BDT_regions or "cr" in region_key else f"{REGION_MAP[region_key]}-BDT",
                         variation=variation,
                     )
                     if events:
-                        # Pass the dynamic branch
-                        h = fill_binned_histogram(
-                            h,
-                            events,
-                            region_key,
-                            setup,
-                            bin_branch=bin_branch,
-                            weight_syst=syst if not is_folder else "nominal",
-                        )
+
+                        if variation is "nominal":
+                            #Lara: Why would we reload the same exact sample with the same exact columns a dozen different times? 
+                            for syst in ["nominal"] + col_systs:
+                                histograms_pkl = {}
+                            
+                                # Pass the dynamic branch
+                                fill_binned_histogram(
+                                    histograms_pkl,
+                                    histograms_rt,
+                                    events,
+                                    region_key,
+                                    setup,
+                                    args,
+                                    in_syst=syst
+                                )
+
+                                if args.save_pkl:
+                                    export_to_pkl(Path(args.outdir) / pkl_name.replace("TMP", syst), histograms_pkl)
+
+                        else:
+                            fill_binned_histogram(
+                                    histograms_pkl,
+                                    histograms_rt,
+                                    events,
+                                    region_key,
+                                    setup,
+                                    args,
+                                    in_syst=variation
+                                )
+
+                            if args.save_pkl:
+                                export_to_pkl(Path(args.outdir) / pkl_name.replace("TMP", variation), histograms_pkl)
+
                     # Memory management within dataset loop
                     del events
                     gc.collect()
 
-                if h.sum() > 0:
-                    histograms[process] = h
-
             if args.save_root:
-                export_to_root(
-                    histograms,
-                    output_root,
-                    region_key,
-                    setup.get("samples_qq", []),
-                    syst,
-                    data_map_key,
-                )
-                print(
-                    f"  [SUCCESS] Updated {output_root} with {len(histograms)} processes for systematic: {syst}"
-                )
+                export_to_root(histograms_rt, output_root, data_map_key)
 
-            # --- NEW: Save Pickles for plotting pipeline ---
-            pickle_path = (
-                Path(args.outdir) / f"hists_{args.year}_{region_key}_{obs_name}_{syst}.pkl"
-            )
-            with pickle_path.open("wb") as f:
-                pickle.dump(histograms, f)
-            print(f"  [SUCCESS] Pickles saved to: {pickle_path}")
-
-            # Memory management after each systematic pass
-            del histograms
             gc.collect()
 
 
@@ -312,6 +311,7 @@ if __name__ == "__main__":
     parser.add_argument("--setup", required=True, help="Path to setup.json file")
     parser.add_argument("--outdir", default="results", help="Directory to save ROOT files")
     parser.add_argument("--save-root", action="store_true", help="Actually write the ROOT file")
+    parser.add_argument("--save-pkl", action="store_true", help="Actually write the PKL file")
 
     args = parser.parse_args()
 
