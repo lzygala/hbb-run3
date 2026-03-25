@@ -252,8 +252,8 @@ class categorizer(SkimmerABC):
             add_pileup_weight(weights, self._year, events.Pileup.nPU)
             add_ps_weight(weights, events.PSWeight)
 
-            # if genHiggs is not None:
-            #     add_EWHiggs_weight(weights, dataset, genHiggs)
+            add_EWHiggs_weight(weights, dataset, events.GenPart)
+            # TODO: Run 2 corrections currently implemented through preapproval, needs to be fixed by approval
             
         return
 
