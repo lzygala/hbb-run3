@@ -230,10 +230,10 @@ def get_EWHiggs_corrector(prodmode: str):
 def add_EWHiggs_weight(weights: Weights, dataset: str, genpart):
     # Apply EW Higgs xs corrections
 
-    boson = genpart[
+    boson = ak.firsts(genpart[
         (genpart.pdgId == 25)
         & genpart.hasFlags(["fromHardProcess", "isLastCopy"])
-    ]
+    ])
     boson_pt = ak.fill_none(boson.pt, 0.)
 
     if "VBFH" in dataset:
@@ -589,3 +589,48 @@ def correct_muons(muons, events, year: str, isRealData: bool):
         muons["ptcorr_resol_down"] = pt_resol_var(muons.ptscalecorr, muons.ptcorr, muons.eta, "dn", cset, nested=True)
 
     return muons
+
+def add_VJets_corrections(weights: Weights, dataset: str, genpart):
+
+    boson = ak.firsts(genpart[
+            ((genpart.pdgId == 23)|(abs(genpart.pdgId) == 24))
+            & genpart.hasFlags(["fromHardProcess", "isLastCopy"])
+        ])
+    vpt = ak.fill_none(boson.pt, 0.)
+    
+    common_systs = [
+        "d1K_NLO",
+        "d2K_NLO",
+        "d3K_NLO",
+        "d1kappa_EW",
+    ]
+    zsysts = common_systs + [
+        "Z_d2kappa_EW",
+        "Z_d3kappa_EW",
+    ]
+    wsysts = common_systs + [
+        "W_d2kappa_EW",
+        "W_d3kappa_EW",
+    ]
+
+    def add_systs(systlist, qcdcorr, ewkcorr):
+        ewknom = ewkcorr.evaluate("nominal", vpt)
+        weights.add("vjets_nominal", qcdcorr * ewknom if qcdcorr is not None else ewknom)
+        ones = np.ones_like(vpt)
+        for syst in systlist:
+            weights.add(syst, ones, ewkcorr.evaluate(syst + "_up", vpt) / ewknom, ewkcorr.evaluate(syst + "_down", vpt) / ewknom)
+
+    file = f"{package_path}/hbb/data/vjets/vjets_corrections.json"
+    vjets_kfactors = correctionlib.CorrectionSet.from_file(file)
+
+    if "ZJetsToQQ_HT" in dataset or "DYJetsToLL_M-50" in dataset:
+        qcdcorr = vjets_kfactors["ULZ_MLMtoFXFX"].evaluate(vpt)
+        ewkcorr = vjets_kfactors["Z_FixedOrderComponent"]
+        add_systs(zsysts, qcdcorr, ewkcorr)
+
+    elif "WJetsToQQ_HT" in dataset or "WJetsToLNu" in dataset:
+        qcdcorr = vjets_kfactors["ULW_MLMtoFXFX"].evaluate(vpt)
+        ewkcorr = vjets_kfactors["W_FixedOrderComponent"]
+        add_systs(wsysts, qcdcorr, ewkcorr)
+
+    return

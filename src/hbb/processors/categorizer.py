@@ -22,6 +22,7 @@ from hbb.corrections import (
     add_ps_weight,
     add_scalevar,
     add_EWHiggs_weight,
+    add_VJets_corrections,
     apply_jerc,
     correct_met,
     correct_muons,
@@ -254,6 +255,8 @@ class categorizer(SkimmerABC):
 
             add_EWHiggs_weight(weights, dataset, events.GenPart)
             # TODO: Run 2 corrections currently implemented through preapproval, needs to be fixed by approval
+
+            add_VJets_corrections(weights, dataset, events.GenPart)
             
         return
 
