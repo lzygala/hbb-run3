@@ -597,6 +597,11 @@ def add_VJets_corrections(weights: Weights, dataset: str, genpart):
             & genpart.hasFlags(["fromHardProcess", "isLastCopy"])
         ])
     vpt = ak.fill_none(boson.pt, 0.)
+
+    Zjets_pref = ["DYto2L-2Jets_MLL-50", "Zto2Q-4Jets_Bin-HT", "Zto2Q-4Jets_HT"]
+    Wjets_pref = ["WtoLNu-2Jets", "Wto2Q-3Jets_Bin-HT", "Wto2Q-3Jets_HT"]
+    isZ_dataset = any(ds in dataset for ds in Zjets_pref)
+    isW_dataset = any(ds in dataset for ds in Wjets_pref)
     
     common_systs = [
         "d1K_NLO",
@@ -623,13 +628,13 @@ def add_VJets_corrections(weights: Weights, dataset: str, genpart):
     file = f"{package_path}/hbb/data/vjets/vjets_corrections.json"
     vjets_kfactors = correctionlib.CorrectionSet.from_file(file)
 
-    if "ZJetsToQQ_HT" in dataset or "DYJetsToLL_M-50" in dataset:
-        qcdcorr = vjets_kfactors["ULZ_MLMtoFXFX"].evaluate(vpt)
+    if isZ_dataset:
+        qcdcorr = vjets_kfactors["Z_MLMtoFXFX"].evaluate(vpt)
         ewkcorr = vjets_kfactors["Z_FixedOrderComponent"]
         add_systs(zsysts, qcdcorr, ewkcorr)
 
-    elif "WJetsToQQ_HT" in dataset or "WJetsToLNu" in dataset:
-        qcdcorr = vjets_kfactors["ULW_MLMtoFXFX"].evaluate(vpt)
+    elif isW_dataset:
+        qcdcorr = vjets_kfactors["W_MLMtoFXFX"].evaluate(vpt)
         ewkcorr = vjets_kfactors["W_FixedOrderComponent"]
         add_systs(wsysts, qcdcorr, ewkcorr)
 
