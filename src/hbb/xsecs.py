@@ -185,17 +185,17 @@ xsecs["WtoLNu-2Jets_0J"] = 55760.0
 xsecs["WtoLNu-2Jets_1J"] = 9529.0
 xsecs["WtoLNu-2Jets_2J"] = 3532.0
 
-xsecs["DYto2L-2Jets_MLL-50-PTLL-40to100_1J"] = 475.3
-xsecs["DYto2L-2Jets_MLL-50-PTLL-100to200_1J"] = 45.42
-xsecs["DYto2L-2Jets_MLL-50-PTLL-200to400_1J"] = 3.382
-xsecs["DYto2L-2Jets_MLL-50-PTLL-400to600_1J"] = 0.1162
-xsecs["DYto2L-2Jets_MLL-50-PTLL-600_1J"] = 0.01392
+xsecs["DYto2L-2Jets_MLL-50_PTLL-40to100_1J"] = 475.3
+xsecs["DYto2L-2Jets_MLL-50_PTLL-100to200_1J"] = 45.42
+xsecs["DYto2L-2Jets_MLL-50_PTLL-200to400_1J"] = 3.382
+xsecs["DYto2L-2Jets_MLL-50_PTLL-400to600_1J"] = 0.1162
+xsecs["DYto2L-2Jets_MLL-50_PTLL-600_1J"] = 0.01392
 
-xsecs["DYto2L-2Jets_MLL-50-PTLL-40to100_2J"] = 179.3
-xsecs["DYto2L-2Jets_MLL-50-PTLL-100to200_2J"] = 51.68
-xsecs["DYto2L-2Jets_MLL-50-PTLL-200to400_2J"] = 7.159
-xsecs["DYto2L-2Jets_MLL-50-PTLL-400to600_2J"] = 0.4157
-xsecs["DYto2L-2Jets_MLL-50-PTLL-600_2J"] = 0.07019
+xsecs["DYto2L-2Jets_MLL-50_PTLL-40to100_2J"] = 179.3
+xsecs["DYto2L-2Jets_MLL-50_PTLL-100to200_2J"] = 51.68
+xsecs["DYto2L-2Jets_MLL-50_PTLL-200to400_2J"] = 7.159
+xsecs["DYto2L-2Jets_MLL-50_PTLL-400to600_2J"] = 0.4157
+xsecs["DYto2L-2Jets_MLL-50_PTLL-600_2J"] = 0.07019
 
 # LO
 xsecs["WtoLNu-4Jets"] = 55390.0
