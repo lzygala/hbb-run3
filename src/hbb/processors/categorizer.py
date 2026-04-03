@@ -292,11 +292,12 @@ class categorizer(SkimmerABC):
         Saved to dictionary to be output in skim files.
         """
 
+        pdf_dict, scalevar_3_dict, scalevar_7_dict = {}, {}, {}
         if not self._skip_syst:
             # Saving variations and sums in the output vector for signal datasets
             flag_syst = ("Hto2B" in dataset) or ("Hto2C" in dataset) or ("VBFZto" in dataset)
             if flag_syst:
-                pdf_dict = add_pdf_weight(events.genWeight, events.LHEScaleWeight)
+                pdf_dict = add_pdf_weight(events.genWeight, events.LHEPdfWeight)
                 scalevar_3_dict = add_scalevar(events.genWeight, events.LHEScaleWeight, structure = "3pt")
                 scalevar_7_dict = add_scalevar(events.genWeight, events.LHEScaleWeight, structure = "7pt")
 

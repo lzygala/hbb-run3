@@ -134,7 +134,7 @@ def add_pdf_weight(gen_weights, pdf_weights):
 
     out_pdf = {}
     sum_pdf = {}
-    for i in range(len(pdf_weights[0])):
+    for i in range(103):
         out_pdf[f"weight_pdf_{i}"] = pdf_weights[:, i]
         sum_pdf[f"sumweight_pdf_{i}"] = ak.sum(pdf_weights[:, i] * gen_weights)
 
