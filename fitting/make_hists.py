@@ -306,7 +306,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Unified Histogram Maker for Signal and CR")
-    parser.add_argument("--year", required=True, choices=["2022", "2022EE", "2023", "2023BPix"])
+    parser.add_argument("--year", required=True, choices=["2022", "2022EE", "2023", "2023BPix", "2024"])
     parser.add_argument("--tag", required=True, help="Tag for the skims directory (e.g., 26Feb03)")
     parser.add_argument("--setup", required=True, help="Path to setup.json file")
     parser.add_argument("--outdir", default="results", help="Directory to save ROOT files")
