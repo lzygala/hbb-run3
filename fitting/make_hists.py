@@ -251,13 +251,14 @@ def main(args):
                     load_cols = cols+col_systs_proc
                 for dataset in datasets:
                     events = utils.load_samples(
-                        data_dir=Path(
+                        data_dir=Path(args.data_dir) if args.data_dir else Path(
                             f"/eos/uscms/store/group/lpchbbrun3/skims/{args.tag}/{args.year}"
                         ),
                         samples={process: [dataset]},
                         columns=load_cols,
                         region=REGION_MAP[region_key] if not do_BDT_regions or "cr" in region_key else f"{REGION_MAP[region_key]}-BDT",
                         variation=variation,
+                        filters=pq_filters,
                     )
                     if events:
 
