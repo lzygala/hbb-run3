@@ -81,7 +81,7 @@ def get_pog_json(obj: str, year: str) -> str:
 
     year = years[year]
 
-    return f"{pog_correction_path}/POG/{pog_json[0]}/{year}/latest/{pog_json[1]}"
+    return f"{pog_correction_path}/{pog_json[0]}/{year}/latest/{pog_json[1]}"
 
 
 def build_lumimask(filename):
