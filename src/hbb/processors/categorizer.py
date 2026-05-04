@@ -275,10 +275,10 @@ class categorizer(SkimmerABC):
         btag_SF = ak.ones_like(events.run)
         if not self._skip_syst:
 
-            if not self._btag_eff and btag_jets is not None:
-                btag_SF = add_btag_weights(
-                    weights, btag_jets, self._btagger, self._btag_wp, self._year, alt_str=weight_str
-                )
+            # if not self._btag_eff and btag_jets is not None:
+            #     btag_SF = add_btag_weights(
+            #         weights, btag_jets, self._btagger, self._btag_wp, self._year, alt_str=weight_str
+            #     )
 
             if muons is not None:
                 add_muon_weights(weights, self._year, muons, self._mupt_type, muon_type, alt_str=weight_str)
@@ -364,7 +364,10 @@ class categorizer(SkimmerABC):
         fatjets = set_ak8jets(events.fatjet, isRealData, self._year, self._nano_version)
         jets = set_ak4jets(events.jet, isRealData, self._year, self._nano_version)
 
-        met = events.PuppiMET
+        if "2022" in self._year or "2023" in self._year or "2024" in self._year:
+            met = events.met
+        else:
+            met = events.PuppiMET
 
         #TODO --- Find out the jerc situation in rdf
         # Apply jerc corrections to jets, fatjets, and met collections
