@@ -223,8 +223,8 @@ class categorizer(SkimmerABC):
         """
         total_variations = (
             ["nominal"]
-            + [f"{var}_{dir}" for var in jerc_variations for dir in ["Up", "Down"]]
-            + [f"{var}_{dir}" for var in mupt_variations for dir in ["Up", "Down"]]
+            # + [f"{var}_{dir}" for var in jerc_variations for dir in ["Up", "Down"]]
+            # + [f"{var}_{dir}" for var in mupt_variations for dir in ["Up", "Down"]]
         )
 
         """
