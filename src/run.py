@@ -110,7 +110,7 @@ def run(year: str, fileset: dict, args: argparse.Namespace):
     # print("output ", output)
 
     # save the output to a pickle file
-    with Path(f"{local_dir}/{args.starti}-{args.endi}.pkl").open("wb") as f:
+    with Path(f"{local_dir}/local_hvv/{args.starti}-{args.endi}.pkl").open("wb") as f:
         pickle.dump(output, f)
     print("Saved output to ", f"{local_dir}/{args.starti}-{args.endi}.pkl")
 
@@ -145,7 +145,7 @@ def run(year: str, fileset: dict, args: argparse.Namespace):
 
                 table = pa.Table.from_pandas(pddf)
                 # This saves the combined file as {local_var}_{region_name}.parquet locally
-                output_file = f"{local_dir}/{local_var}_{region_name}.parquet"
+                output_file = f"{local_dir}/local_hvv/{local_var}_{region_name}.parquet"
                 pq.write_table(table, output_file)
                 print("Saved parquet file to ", output_file)
 
