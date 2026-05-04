@@ -15,6 +15,7 @@ import yaml
 from coffea import nanoevents
 from coffea.dataset_tools import apply_to_fileset, max_chunks, preprocess
 
+from hbb.rdf_schema import RDFSchema
 from hbb.run_utils import get_dataset_spec, get_fileset
 from hbb.xsecs import xsecs
 
@@ -98,7 +99,7 @@ def run(year: str, fileset: dict, args: argparse.Namespace):
     full_tg, rep = apply_to_fileset(
         data_manipulation=p,
         fileset=max_chunks(preprocessed_available, 300),
-        schemaclass=nanoevents.NanoAODSchema,
+        schemaclass=RDFSchema,
         uproot_options={
             "allow_read_errors_with_report": (OSError, KeyError),
             "xrootd_handler": uproot.source.xrootd.MultithreadedXRootDSource,
@@ -196,7 +197,7 @@ if __name__ == "__main__":
         help="year",
         type=str,
         default="2023",
-        choices=["2022", "2022EE", "2023", "2023BPix", "2024"],
+        choices=["2018", "2022", "2022EE", "2023", "2023BPix", "2024"],
     )
     parser.add_argument("--starti", default=0, help="start index of files", type=int)
     parser.add_argument("--endi", default=-1, help="end index of files", type=int)
@@ -215,7 +216,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--nano-version",
         type=str,
-        default="v14_private",
+        default="v15",
         choices=["v12", "v12v2_private", "v14_private", "v15"],
         help="NanoAOD version",
     )

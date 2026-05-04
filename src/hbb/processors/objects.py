@@ -89,13 +89,16 @@ def good_electrons(electrons: ElectronArray):
     return electrons[sel]
 
 
-def set_ak4jets(jets: JetArray, isRealData: bool, year: str, nano_version: str, event_rho):
+def set_ak4jets(jets: JetArray, isRealData: bool, year: str, nano_version: str, event_rho=None):
     """
     Jet ID fix for NanoAOD v12 copying
     # https://gitlab.cern.ch/cms-jetmet/coordination/coordination/-/issues/117#note_8880716
     """
 
-    if "v12" in nano_version:
+    if year == "2018" or year == "2017":
+        jets["jetidtight"] = jets.jetId > 1
+        jets["jetidtightlepveto"] = jets.jetId > 2
+    elif "v12" in nano_version:
 
         jetidtightbit = (jets.jetId & 2) == 2
         jetidtight = (
@@ -119,12 +122,13 @@ def set_ak4jets(jets: JetArray, isRealData: bool, year: str, nano_version: str, 
 
     # TODO: Add PNet pt regression
 
-    # jerc variables
-    jets["pt_raw"] = (1 - jets.rawFactor) * jets.pt
-    jets["mass_raw"] = (1 - jets.rawFactor) * jets.mass
-    jets["event_rho"] = ak.broadcast_arrays(event_rho, jets.pt)[0]
-    if not isRealData:  # only for jer
-        jets["pt_gen"] = ak.values_astype(ak.fill_none(jets.matched_gen.pt, 0), np.float32)
+    if event_rho is not None:
+        # jerc variables
+        jets["pt_raw"] = (1 - jets.rawFactor) * jets.pt
+        jets["mass_raw"] = (1 - jets.rawFactor) * jets.mass
+        jets["event_rho"] = ak.broadcast_arrays(event_rho, jets.pt)[0]
+        if not isRealData:  # only for jer
+            jets["pt_gen"] = ak.values_astype(ak.fill_none(jets.matched_gen.pt, 0), np.float32)
 
     return jets
 
@@ -146,12 +150,16 @@ def good_ak4jets(jets: JetArray):
     return jets[sel]
 
 
-def set_ak8jets(fatjets: FatJetArray, isRealData: bool, year: str, nano_version: str, event_rho):
+def set_ak8jets(fatjets: FatJetArray, isRealData: bool, year: str, nano_version: str, event_rho=None):
+
 
     if "v12" in nano_version:
         fatjets["jetidtight"] = fatjets.isTight
     else:
-        fatjets = correct_jetid(fatjets, "AK8", year)
+        if year == "2018" or year == "2017":
+            fatjets["jetidtight"] = fatjets.jetId > 1
+        else:
+            fatjets = correct_jetid(fatjets, "AK8", year)
 
         fatjets["ParTPQCD"] = fatjets.globalParT3_QCD
         fatjets["ParTPXbb"] = fatjets.globalParT3_Xbb
@@ -184,16 +192,18 @@ def set_ak8jets(fatjets: FatJetArray, isRealData: bool, year: str, nano_version:
         fatjets.particleNet_XbbVsQCD + fatjets.particleNet_XccVsQCD + fatjets.particleNet_QCD
     )
 
-    # jerc variables
-    fatjets["pt_raw"] = (1 - fatjets.rawFactor) * fatjets.pt
-    fatjets["mass_raw"] = (1 - fatjets.rawFactor) * fatjets.mass
-    fatjets["event_rho"] = ak.broadcast_arrays(event_rho, fatjets.pt)[0]
-    if not isRealData:  # only for jer
-        fatjets["pt_gen"] = ak.values_astype(ak.fill_none(fatjets.matched_gen.pt, 0), np.float32)
+    if event_rho is not None:
+        # jerc variables
+        fatjets["pt_raw"] = (1 - fatjets.rawFactor) * fatjets.pt
+        fatjets["mass_raw"] = (1 - fatjets.rawFactor) * fatjets.mass
+        fatjets["event_rho"] = ak.broadcast_arrays(event_rho, fatjets.pt)[0]
+        if not isRealData:  # only for jer
+            fatjets["pt_gen"] = ak.values_astype(ak.fill_none(fatjets.matched_gen.pt, 0), np.float32)
     return fatjets
 
 
 # ak8 jet definition
 def good_ak8jets(fatjets: FatJetArray):
     sel = fatjets.jetidtight & (fatjets.pt > 200) & (abs(fatjets.eta) < 2.5)
+    # sel = (fatjets.pt > 200) & (abs(fatjets.eta) < 2.5)
     return fatjets[sel]

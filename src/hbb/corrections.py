@@ -40,9 +40,10 @@ LastRun_2022F = 362180
 """
 CorrectionLib files are available from: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration - synced daily
 """
-pog_correction_path = "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/"
+pog_correction_path = "/cvmfs/cms-griddata.cern.ch/cat/metadata/"
 pog_jsons = {
     "muon": ["MUO", "muon_Z.json.gz"],
+    "muon_pt" : ["MUO", "muon_scalesmearing.json.gz"],
     "electron": ["EGM", "electron.json.gz"],
     "photon": ["EGM", "photon.json.gz"],
     "photon2024": ["EGM", "photonID_v1.json.gz"],
@@ -55,11 +56,13 @@ pog_jsons = {
 }
 
 years = {
-    "2022": "2022_Summer22",
-    "2022EE": "2022_Summer22EE",
-    "2023": "2023_Summer23",
-    "2023BPix": "2023_Summer23BPix",
-    "2024": "2024_Summer24",
+    "2017": "Run2-2017-UL-NanoAODv15",
+    "2018": "Run2-2018-UL-NanoAODv15",
+    "2022": "Run3-22CDSep23-Summer22-NanoAODv12",
+    "2022EE": "Run3-22EFGSep23-Summer22EE-NanoAODv12",
+    "2023": "Run3-23CSep23-Summer23-NanoAODv12",
+    "2023BPix": "Run3-23DSep23-Summer23BPix-NanoAODv12",
+    "2024": "Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15",
 }
 
 
@@ -78,7 +81,7 @@ def get_pog_json(obj: str, year: str) -> str:
 
     year = years[year]
 
-    return f"{pog_correction_path}/POG/{pog_json[0]}/{year}/{pog_json[1]}"
+    return f"{pog_correction_path}/{pog_json[0]}/{year}/latest/{pog_json[1]}"
 
 
 def build_lumimask(filename):
@@ -370,7 +373,7 @@ def add_btag_weights(weights: Weights, jets: JetArray, btagger: str, wp: str, ye
     elif "DeepFlav" in btagger:
         sys_name = "deepJet"
 
-    if year == "2024":
+    if year == "2018":
         #SFs not derived by BTV for Summer24 yet
         return ak.ones_like(ak.num(jets))
 
@@ -542,7 +545,7 @@ def correct_muons(muons, events, year: str, isRealData: bool):
     src/hbb/MuonScaRe.py refactored to work with dask+awkward by Lara
     """
     c_file =f"{package_path}/hbb/data/mupt/{years[year]}.json"
-    cset = correctionlib.CorrectionSet.from_file(c_file)
+    cset = correctionlib.CorrectionSet.from_file(get_pog_json("muon_pt", year))
 
     if isRealData:
         muons["ptcorr"] = pt_scale(1, muons.pt, muons.eta, muons.phi, muons.charge, cset, nested=True)
