@@ -232,16 +232,20 @@ def ratio_plot(
         rax.set_ylim(-2.2, 2.2)
         yerr = 1
     else:
-        rh = data.values() / tot_bkg.values()
+        if data is not None:
+            rh = data.values() / tot_bkg.values()
+            yerr = ratio_uncertainty(data.values(), tot_bkg.values(), "poisson")
+        else:
+            rh = np.zeros_like(tot_bkg.values())
+            yerr = np.zeros_like(tot_bkg.values())
         rax.set_ylabel(r"$\frac{Data}{Bkg}$", y=0.5)
         rax.axhline(1, color="gray", ls="--")
         rax.set_ylim(0, 2.2)
-        yerr = ratio_uncertainty(data.values(), tot_bkg.values(), "poisson")
 
     ## Plotting subplot
     hep.histplot(
         rh,
-        data.axes[0].edges,
+        tot_bkg.axes[0].edges,
         ax=rax,
         yerr=yerr,
         histtype="errorbar",
@@ -251,11 +255,145 @@ def ratio_plot(
     )
 
     # Axis limits
+    ax.set_xlim(tot_bkg.axes[0].edges[0], tot_bkg.axes[0].edges[-1])
+
+    # Axis labels
+    ax.set_xlabel(None)
+    ax.set_ylabel("Events / GeV")
+    rax.set_xlabel(tot_bkg.axes[0].label)
+
+    return fig, (ax, rax)
+
+def c2vonly_plot(
+    hist_dict: dict[hist.Hist],
+    # Sample plotting opts
+    sigs: list[str],  # List of samples considered signals  | None = None
+    bkgs: (
+        list[str] | None
+    ) = None,  # List of samples considered background - exclude "onto" sample i.e. QCD
+    # Style opts
+    style: dict | None = None,  # Style YAML
+    ratio_with_uncertainty: bool = False,  # Whether to plot ratio/data uncertainty in the ratio
+    sort_by_yield: bool = True,  # Whether to sort backgrounds by yield
+    legend_title: str | None = None,
+):
+    style = style.copy()
+
+    # merge histograms according to the style
+    merge = extract_mergemap(style)
+    hist_dict = merge_hists(hist_dict, merge)
+
+    # --- NEW SORTING LOGIC ---
+    if sort_by_yield and bkgs:
+        bkg_keys_in_plot = [key for key in bkgs if key in hist_dict]
+        bkg_yields = {key: hist_dict[key].sum() for key in bkg_keys_in_plot}
+        # print(f"Bkg yields before sorting: {bkg_yields}")
+        bkgs = sorted(bkg_yields, key=bkg_yields.get, reverse=True)
+        # print(f"Bkg order after sorting by yield: {bkgs}")
+    # --- END NEW LOGIC ---
+
+    data = hist_dict.get("data", None)
+    all_bkg_keys = bkgs if bkgs else []
+    all_bkgs_hists = [hist_dict[k] for k in all_bkg_keys if k in hist_dict]
+    tot_bkg = sum(all_bkgs_hists) if all_bkgs_hists else None
+
+    fig, (ax, rax) = plt.subplots(2, 1, gridspec_kw={"height_ratios": (3, 1)}, sharex=True)
+    plt.subplots_adjust(hspace=0)
+    plt.rcParams.update({"font.size": 24})
+
+    _hatch = [None, *[style[k]["hatch"] for k in bkgs + sigs]]
+    _edgecolor = [
+        style[k]["color"] if h not in ["none", None] else None
+        for k, h in zip(bkgs + sigs, _hatch)
+    ]
+    _facecolor = [
+        "none" if h not in ["none", None] else style[k]["color"]
+        for k, h in zip(bkgs + sigs, _hatch)
+    ]
+    
+    hep.histplot(
+        [hist_dict[k] for k in bkgs + sigs],
+        ax=ax,
+        label=bkgs + sigs,
+        stack=False,
+        histtype="fill",
+        # facecolor=[style[k]["color"] for k in bkgs + sigs],
+        facecolor=[style[k]["color"] for k in bkgs + sigs],
+        edgecolor=[style[k]["color"] for k in bkgs + sigs],
+    )
+    if data is not None:
+        hep.histplot(
+            data,
+            ax=ax,
+            histtype="errorbar",
+            label="Data",
+            xerr=True,
+            color="k",
+            zorder=4,
+        )
+
+    # Set the grid
+    ax.xaxis.grid(True, which="major")
+    ax.yaxis.grid(True, which="major")
+    rax.xaxis.grid(True, which="major")
+    rax.yaxis.grid(True, which="major")
+
+    # Set the legend
+    ax.legend(ncol=2)
+    # Reformat the legend
+    existing_keys = ax.get_legend_handles_labels()[-1]
+    for key in existing_keys:
+        if key not in style:
+            style[key] = {"label": key}
+    order = np.argsort([list(style.keys()).index(i) for i in existing_keys])
+    handles, labels = ax.get_legend_handles_labels()
+    handles = [handles[i] for i in order]
+    labels = [style[labels[i]]["label"] for i in order]
+    _legend_fontsize = "small" if len(labels) <= 8 else "x-small"
+    _ = format_legend(
+        ax,
+        ncols=2,
+        handles_labels=(handles, labels),
+        bbox_to_anchor=(1, 1),
+        markerscale=0.8,
+        fontsize=_legend_fontsize,
+        labelspacing=0.4,
+        columnspacing=1.5,
+        title=legend_title,
+    )
+    hep.yscale_legend(ax, soft_fail=True)
+
+    # Subplot/ratio
+    rh = []
+    yerr = []
+    for s in sigs:
+        data = hist_dict[s]
+        rh.append( data.values() / tot_bkg.values() )
+        yerr.append(ratio_uncertainty(data.values(), tot_bkg.values(), "poisson"))
+
+    rax.set_ylabel(r"$\frac{C_{VV}}{SM}$", y=0.5)
+    rax.axhline(1, color="gray", ls="--")
+    rax.set_ylim(0, 100)
+
+    ## Plotting subplot
+    hep.histplot(
+        rh,
+        tot_bkg.axes[0].edges,
+        ax=rax,
+        yerr=yerr,
+        histtype="errorbar",
+        xerr=True,
+        zorder=4,
+        color=[style[k]["color"] for k in sigs],
+    )
+
+    # Axis limits
     ax.set_xlim(data.axes[0].edges[0], data.axes[0].edges[-1])
 
     # Axis labels
     ax.set_xlabel(None)
     ax.set_ylabel("Events / GeV")
     rax.set_xlabel(tot_bkg.axes[0].label)
+    rax.set_yscale('log')
 
     return fig, (ax, rax)

@@ -19,6 +19,21 @@ total_background:
   color: '#bd1f01'
   hatch: null
 
+vbs-hvv-c2v1p0:
+  label: $VBS\, VVH\, C_{VV}=1.0$
+  color: '#ffa90e'
+  hatch: null
+
+vbs-hvv-c2v1p5:
+  label: $VBS\, VVH\, C_{VV}=1.5$
+  color: '#d62828'
+  hatch: null
+
+vbs-hvv-c2v2p0:
+  label: $VBS\, VVH\, C_{VV}=2.0$
+  color: '#4E5A7E'
+  hatch: null
+
 zcc:
   label: $Z\rightarrow c\bar{c}$
   color: '#d62828'
@@ -49,8 +64,8 @@ wjets:
   color: '#84a98c'
   hatch: null
 
-hbb:
-  label: $H\rightarrow b\bar{b}$
+higgs:
+  label: $Higgs$
   color: '#4E5A7E'
   hatch: null
   contains:
@@ -73,6 +88,7 @@ other:
   contains:
   - diboson
   - ewkv
+  - triboson
 
 
 # Z-jets colors (shades of blue-green)
