@@ -366,10 +366,7 @@ class categorizer(SkimmerABC):
         fatjets = set_ak8jets(events.fatjet, isRealData, self._year, self._nano_version)
         jets = set_ak4jets(events.jet, isRealData, self._year, self._nano_version)
 
-        if "2022" in self._year or "2023" in self._year or "2024" in self._year:
-            met = events.met
-        else:
-            met = events.PuppiMET
+        met = events.met
 
         #TODO --- Find out the jerc situation in rdf
         # Apply jerc corrections to jets, fatjets, and met collections
