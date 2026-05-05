@@ -336,6 +336,8 @@ class categorizer(SkimmerABC):
 
     def process_shift(self, events, shift_name):
 
+        if "2022" in self._year or "2023" in self._year:
+            return
         dataset = events.metadata["dataset"]
         isRealData = events.isData == 1
         selection = PackedSelection()
@@ -464,45 +466,47 @@ class categorizer(SkimmerABC):
         # ---- AK4 Jets ----
         goodjets = good_ak4jets(jets)
         dR = goodjets.delta_r(candidatejet)
-        dR_V = ak.fill_none(goodjets.delta_r(candidateVjet), float(999)) #for events with no V jet
-        ak4_outside_ak8 = goodjets[(dR > 0.8) & (dR_V > 0.8)]
+        dR_V_pass = goodjets.delta_r(candidateVjet) > 0.8 #for events with no V jet
+        dR_V_pass = ak.fill_none(dR_V_pass, True)
+        ak4_outside_ak8 = goodjets[(dR > 0.8)]
+        ak4_medb_outside_ak8 = ak4_outside_ak8[ak4_outside_ak8.isMediumBTag]
+        nb_veto = ak.num(ak4_medb_outside_ak8, axis=1)
+        
 
         #AK4 b-jet vetos
-        selection.add(
-            "antiak4btagMedium",
-            ak.max(getattr(ak4_outside_ak8, self._btagger), axis=1, mask_identity=False)
-            < self._btag_cut,
-        )
-        selection.add(
-            "ak4btagMedium08",
-            ak.max(getattr(ak4_outside_ak8, self._btagger), axis=1, mask_identity=False)
-            > self._btag_cut,
-        )
+        selection.add("antiak4btagMedium", nb_veto == 0)
+        selection.add("ak4btagMedium08", nb_veto > 0)
 
         # ---- VBF Jets ----
         dR_higgs = goodjets.delta_r(candidatejet)
         dR_leadlep = goodjets.delta_r(leadinglep)
         dR_subleadlep = goodjets.delta_r(subleadinglep)
-        dR_V = ak.fill_none(goodjets.delta_r(candidateVjet), float(999)) #for events with no V jet
-        ak4_outside_objs = goodjets[((dR_higgs > 0.8) & (dR_leadlep > 0.4) & (dR_subleadlep > 0.4) & (dR_V > 0.8))]
+        dR_V_pass = goodjets.delta_r(candidateVjet) > 0.8 #for events with no V jet
+        dR_V_pass = ak.fill_none(dR_V_pass, True) #for events with no V jet
+        ak4_outside_objs = goodjets[((dR_higgs > 0.8) & (dR_leadlep > 0.4) & (dR_subleadlep > 0.4))]
+        # ak4_outside_objs = goodjets[((dR_higgs > 0.8) & (dR_leadlep > 0.4) & (dR_subleadlep > 0.4))]
 
-        pairs = ak.combinations(ak4_outside_objs, 2, fields=["j1", "j2"])
-        deta_pairs = abs(pairs.j1.eta - pairs.j2.eta)
-        max_idx = ak.argmax(deta_pairs, axis=1, keepdims=True)
+        # pairs = ak.combinations(ak4_outside_objs, 2, fields=["j1", "j2"])
+        # deta_pairs = abs(pairs.j1.eta - pairs.j2.eta)
+        # max_idx = ak.argmax(deta_pairs, axis=1, keepdims=True)
 
         # VBF specific variables
-        jet1_away = ak.firsts(pairs.j1[max_idx])
-        jet2_away = ak.firsts(pairs.j2[max_idx])
+        # jet1_away = ak.firsts(pairs.j1[max_idx])
+        # jet2_away = ak.firsts(pairs.j2[max_idx])
+
+        jet1_away = ak.firsts(ak4_outside_objs[:, 0:1])
+        jet2_away = ak.firsts(ak4_outside_objs[:, 1:2])
+
 
         vbf_deta = abs(jet1_away.eta - jet2_away.eta)
         vbf_mjj = (jet1_away + jet2_away).mass
-        vbf_deta = ak.fill_none(vbf_deta, -1)
-        vbf_mjj = ak.fill_none(vbf_mjj, -1)
 
         isvbf = (vbf_deta > 2.5) & (vbf_mjj > 750)
         isvbf = ak.fill_none(isvbf, False)
-        isnotvbf = ak.fill_none(~isvbf, True)
 
+        nak4s_vbf = ak.num(ak4_outside_objs, axis=1)
+
+        selection.add("2ak4s", nak4s_vbf > 1)
         selection.add("isvbf", isvbf)
 
         gen_variables = {}
@@ -541,12 +545,13 @@ class categorizer(SkimmerABC):
                 # "trigger",
                 # "ak4jetveto",
                 "twoleptons",
-                "highmet",
+                # "highmet",
                 "oppsign",
                 "lepdR",
                 "notZpeak",
                 "onegoodAK8",
-                # "antiak4btagMedium",
+                "antiak4btagMedium",
+                "2ak4s",
                 # "isvbf",
 
             ],
@@ -554,14 +559,15 @@ class categorizer(SkimmerABC):
                 # "trigger",
                 # "ak4jetveto",
                 "twoleptons",
-                "highmet",
+                # "highmet",
                 "oppsign",
                 "sameflavor",
                 "lepdR",
                 "inZpeak",
                 "onegoodAK8",
                 "antiak4btagMedium",
-                "isvbf",
+                "2ak4s",
+                # "isvbf",
             ],
             "signal-wzh-zzh-2FJ": [
                 # "trigger",
@@ -573,7 +579,8 @@ class categorizer(SkimmerABC):
                 "inZpeak",
                 "twogoodAK8",
                 "antiak4btagMedium",
-                "isvbf",
+                "2ak4s",
+                # "isvbf",
             ],
         }
 

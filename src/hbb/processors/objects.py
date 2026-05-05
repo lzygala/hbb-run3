@@ -95,7 +95,7 @@ def set_ak4jets(jets: JetArray, isRealData: bool, year: str, nano_version: str, 
     # https://gitlab.cern.ch/cms-jetmet/coordination/coordination/-/issues/117#note_8880716
     """
 
-    if year == "2018" or year == "2017":
+    if year == "2018" or year == "2017" or "2016" in year:
         jets["jetidtight"] = jets.jetId > 1
         jets["jetidtightlepveto"] = jets.jetId > 2
     elif "v12" in nano_version:
