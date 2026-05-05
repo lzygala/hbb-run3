@@ -178,18 +178,7 @@ def load_samples(
                 )
                 continue
 
-            if "data" not in process:
-                # For MC datasets, we need to normalize the weights
-                sum_genweights = get_sum_genweights(data_dir, dataset)
-                print(f"Using sum_genweights for {dataset}: {sum_genweights}")
-
-                events["weight_nonorm"] = events["weight"]
-                events["finalWeight"] = events["weight"] / sum_genweights
-                events["sum_genWeight"] = sum_genweights
-            else:
-                # For data, we just keep the weight as is
-                events["weight_nonorm"] = events["weight"]
-                events["finalWeight"] = events["weight"]
+            events["finalWeight"] = events["weight"]
 
             # Add the DataFrame to the dictionary with the dataset name as the key
             events_list.append(events)
