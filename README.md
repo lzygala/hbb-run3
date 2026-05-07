@@ -62,41 +62,22 @@ Install requirements (see note on lpc below):
 ```
 # Perform an editable installation
 pip install -e .
-# for committing to the repository
-pip install pre-commit
-pre-commit install
 # install requirements
 pip install -r requirements.txt
 ```
-
-Note:
-In LPC, install pre-commit in your nobackup area:
-```
-pip install --target=~/nobackup/pre-commit pre-commit
-# export location of your precommits
-echo 'export PRE_COMMIT_HOME=~./nobackup/pre-commit/.pre-commit-cache' >> ~/.bashrc
-source ~/.bashrc
-```
-
-**Singularity**: (for submitting jobs with Dask)
-Set up environment by following instructions at https://github.com/CoffeaTeam/lpcjobqueue/
-
-Ensure you have a valid grid certificate (`voms-proxy-init -voms cms -valid 192:00`)
-
-Enable singularity
-```bash
-./shell coffeateam/coffea-dask-almalinux9:latest
-```
-
 
 
 ## Run processor locally
 
 **In your micromamba environment:**
 ```
-source ~/.bashrc
 micromamba activate hbb
+source local_hvv.sh
 ```
+
+
+# Deeper instruction
+## Run processor locally
 
 To run on a single file (starting index at 0, ending index at 1) for one subsample
 ```bash

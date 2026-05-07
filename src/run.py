@@ -87,6 +87,7 @@ def run(year: str, fileset: dict, args: argparse.Namespace):
 
     p = categorizer(
         xsecs=xsecs,
+        dataset=args.dataset,
         year=year,
         nano_version=args.nano_version,
         save_skim=args.save_skim,
@@ -198,6 +199,12 @@ if __name__ == "__main__":
         type=str,
         default="2023",
         choices=["2018", "2022", "2022EE", "2023", "2023BPix", "2024"],
+    )
+    parser.add_argument(
+        "--dataset",
+        help="dataset name",
+        type=str,
+        required=True
     )
     parser.add_argument("--starti", default=0, help="start index of files", type=int)
     parser.add_argument("--endi", default=-1, help="end index of files", type=int)

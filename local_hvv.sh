@@ -23,10 +23,19 @@ normalize_year() {
 rm -r local_hvv/
 mkdir local_hvv/
 
-tag="hvv_26May5"
+tag="hvv_26May6"
 process_tag="merged_2lep_1FJ_r3_2lep_1FJ_20260430155132"
 basedir="/eos/user/r/rband/HVV2LRDF/2lep_1FJ_r3_2lep_1FJ/"
 indir="${basedir}/merged_2lep_1FJ_r3_2lep_1FJ_20260430155132_2lep_1FJ/"
+
+#signal
+# process_tag="merged_2lep_1FJ_r3_2lep_1FJ_20260504235849"
+# basedir="/eos/user/r/rband/HVV2LRDF/2lep_1FJ_r3_2lep_1FJ/"
+# indir="${basedir}/merged_2lep_1FJ_r3_2lep_1FJ_20260504235849_2lep_1FJ/"
+
+
+
+
 #r2:
 
 # process_tag="merged_2lep_1FJ_r2_2lep_1FJ_20260430154928"
@@ -70,7 +79,7 @@ do
 
         # Example: pass to your command
         # python src/run.py --year "${year}" --nano-version v15 --save-skim  --files root://eosuser.cern.ch//${infile}
-        python src/run.py --year "${year}" --nano-version v15 --save-skim  --files "${file_list[@]}"
+        python src/run.py --year "${year}" --nano-version v15 --save-skim  --files "${file_list[@]}" --dataset "${process}"
 
 
         # Move final output to EOS
@@ -80,7 +89,7 @@ do
         # This logic creates the nested structure and partN.parquet names
 
         xrdfs root://cmseos.fnal.gov// mkdir -p "/${outdir}/${year}/${process}/pickles"
-        xrdcp -f *.pkl "root://cmseos.fnal.gov///${outdir}/${year}/${process}/pickles/out_${jobnum}.pkl"
+        xrdcp -f local_hvv/*.pkl "root://cmseos.fnal.gov///${outdir}/${year}/${process}/pickles/out_${jobnum}.pkl"
 
         # 2. Next, handle the combined parquet files
         for file in local_hvv/*.parquet; do
