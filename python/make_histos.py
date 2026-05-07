@@ -73,13 +73,6 @@ def fill_ptbinned_histogram(events, axis_label, region, dataset, isData=False, d
             "signal_region": ["preselection", "hbb_score_0p1", "vbf_deta_2p5", "vbf_mjj_250"]
         }
 
-        # selection_dict = {
-        #     "preselection": pre_selection,
-        #     "preselection_ee": (pre_selection) & (ll_flav==sl_flav) & (ll_flav == 1.),
-        #     "preselection_mumu": (pre_selection)  & (ll_flav==sl_flav) & (ll_flav == 0.),
-        #     "preselection_emu": (pre_selection) & (ll_flav!=sl_flav),
-        # }
-
         # Fill histograms
         for category, selection_list in selection_dict.items():
             full_selection = None
