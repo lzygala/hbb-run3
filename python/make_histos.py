@@ -11,25 +11,36 @@ import numpy as np
 from common import common_mc, data_by_year
 
 from hbb import utils
-from axis_info import axis_to_histaxis, column_to_axis
-
+from axis_info import axis_to_histaxis, axis_to_column
 
 # --- FUNCTION MODIFIED ---
 # It now takes an existing histogram `h` as an argument to fill
-def fill_ptbinned_histogram(events, column, isData=False):
+def fill_ptbinned_histogram(events, axis_label, region, dataset, isData=False, do_cutflow=False):
     """
     Fills a histogram with events from a single dataset.
     """
+    column = axis_to_column[axis_label]
             
     h = hist.Hist(
-        axis_to_histaxis[column_to_axis[column]],
+        axis_to_histaxis[axis_label],
         axis_to_histaxis["category"],
+        storage=hist.storage.Weight()
     )
+
+    if do_cutflow:
+        cutflow = hist.Hist(
+            hist.axis.StrCategory([], growth=True, name="region", label="Region"),
+            hist.axis.StrCategory([], growth=True, name="category", label="Category"),
+            hist.axis.StrCategory([], growth=True, name="dataset", label="Dataset"),
+            hist.axis.Regular(4, 0, 10000, name="h_pt", label="Higgs AK8 pt"),
+            hist.axis.Regular(15, 0, 15, name="cut", label="Cut index"),
+            storage=hist.storage.Weight()
+        )
 
     for _process_name, data in events.items():
         weight_val = data["finalWeight"].astype(float)
         if isData:
-            print("DATA HOORAY")
+            # print("DATA HOORAY")
             weight_val = data['weight_noxsec'].astype(float)
         var = data[column]
 
@@ -37,20 +48,67 @@ def fill_ptbinned_histogram(events, column, isData=False):
         Txbb = data["HiggsAK8_ParTPXbbVsQCD"]
         msd = data["HiggsAK8_msd"]
         pt = data["HiggsAK8_pt"]
-        pre_selection = (msd > 40) & (pt > 250)
-        selection_dict = {
+        mjj = data["VBFPair_mjj"]
+        deta = data["VBFPair_deta"]
+        ll_flav = data["LeadingLep_flavor"]
+        sl_flav = data["SubLeadingLep_flavor"]
+        pre_selection = (msd >= 40) & (pt >= 250) # & (mjj > 250) & (deta > 2.5)
+
+        all_selections = {
             "preselection": pre_selection,
+            "hbb_score_0p1": (Txbb > 0.1),
+            "vbf_deta_2p5": (deta > 2.5),
+            "vbf_mjj_250": (mjj > 250),
+            "same_flavor": (ll_flav==sl_flav),
+            "opposite_flavor": (ll_flav!=sl_flav),
+            "both_electrons": (ll_flav==sl_flav) & (ll_flav == 1.),
+            "both_muons": (ll_flav==sl_flav) & (ll_flav == 0.)
         }
 
+        selection_dict = {
+            "preselection": ["preselection"],
+            "preselection_ee": ["preselection", "both_electrons"],
+            "preselection_mumu": ["preselection", "both_muons"],
+            "preselection_emu": ["preselection", "opposite_flavor"],
+            "signal_region": ["preselection", "hbb_score_0p1", "vbf_deta_2p5", "vbf_mjj_250"]
+        }
+
+        # selection_dict = {
+        #     "preselection": pre_selection,
+        #     "preselection_ee": (pre_selection) & (ll_flav==sl_flav) & (ll_flav == 1.),
+        #     "preselection_mumu": (pre_selection)  & (ll_flav==sl_flav) & (ll_flav == 0.),
+        #     "preselection_emu": (pre_selection) & (ll_flav!=sl_flav),
+        # }
+
         # Fill histograms
-        for category, selection in selection_dict.items():
+        for category, selection_list in selection_dict.items():
+            full_selection = None
+            for i, selection in enumerate(selection_list):
+                if i==0:
+                    full_selection = all_selections[selection]
+                else:
+                    full_selection = full_selection & all_selections[selection]
+
+                if do_cutflow:
+                    cutflow.fill(
+                        region = region,
+                        dataset = dataset,
+                        category = category,
+                        h_pt = pt[full_selection],
+                        cut = i,
+                        weight=weight_val[full_selection]
+                    )
+
+
             h.fill(
-                var[selection],
+                var[full_selection],
                 # pt1=pt[selection],
                 category=category,
                 # genflavor=genflavordata[selection],
-                weight=weight_val[selection],
+                weight=weight_val[full_selection],
             )
+    if do_cutflow:
+        return cutflow
     return h
 
 
@@ -59,7 +117,7 @@ def main(args):
     region = args.region
 
     MAIN_DIR = "/eos/uscms/store/group/lpchbbrun3/"
-    dir_name = "lzygala/hvv_26May4/merged_2lep_1FJ_r3_2lep_1FJ_20260430155132/"
+    dir_name = "lzygala/hvv_26May6/merged_2lep_1FJ_r3_2lep_1FJ_20260430155132/"
     path_to_dir = f"{MAIN_DIR}/{dir_name}/"
 
     load_columns = [
@@ -67,9 +125,12 @@ def main(args):
         "HiggsAK8_pt",
         "HiggsAK8_msd",
         "HiggsAK8_ParTPXbbVsQCD",
-        'weight_noxsec'
+        'weight_noxsec',
+        'LeadingLep_flavor',
+        'SubLeadingLep_flavor'
     ]
-    for column in column_to_axis.keys():
+    for axis in axis_to_column.keys():
+        column = axis_to_column[axis]
         if column not in load_columns:
             load_columns.append(column) 
     filters = None
@@ -81,7 +142,7 @@ def main(args):
         "data": data_by_year[year],
     }
 
-    histograms = {column: {} for column in column_to_axis.keys()}
+    histograms = {column: {} for column in axis_to_column.keys()}
 
     # --- MAIN LOOP RESTRUCTURED ---
     # Loop through each process
@@ -93,7 +154,7 @@ def main(args):
         for dataset in datasets:
             # Load only one dataset at a time to save memory
             search_path = Path(data_dir / dataset / "parquet" / region / "nominal")
-            print(f"\n[DEBUG] Script is searching for files in: {search_path}\n")
+            # print(f"\n[DEBUG] Script is searching for files in: {search_path}\n")
 
             events = utils.load_samples(
                 data_dir,
@@ -107,17 +168,37 @@ def main(args):
                 print(f"No events found for dataset {dataset} in year {year}. Skipping.")
                 continue
 
-            for column in column_to_axis.keys():
+            cflow = fill_ptbinned_histogram(
+                    events=events, 
+                    axis_label=axis, 
+                    region=region,
+                    dataset=dataset,
+                    isData="_Run20" in dataset,
+                    do_cutflow=True
+                    )
+            picklename = f"{data_dir}/{dataset}/pickles/postprocessing_cutflow.pkl"
+            cflowfile = open(picklename, 'wb')
+            pickle.dump(cflow, cflowfile, protocol=-1)
+
+            for axis in axis_to_column.keys():
+                column = axis_to_column[axis]
                 # Fill the histogram with the events from this single dataset
-                h = fill_ptbinned_histogram(events, column, "_Run20" in dataset)
+                h = fill_ptbinned_histogram(
+                    events=events, 
+                    axis_label=axis, 
+                    region=region,
+                    dataset=dataset,
+                    isData="_Run20" in dataset,
+                    do_cutflow=False
+                    )
 
                 if h.sum() == 0:
                     continue
 
-                if not process in histograms[column]:
-                    histograms[column][process] = h
+                if not process in histograms[axis]:
+                    histograms[axis][process] = h
                 else:
-                    histograms[column][process] += h
+                    histograms[axis][process] += h
 
         # --- ADDED CHECK ---
         # Only add the histogram to our dictionary if it has entries

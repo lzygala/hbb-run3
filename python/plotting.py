@@ -11,9 +11,24 @@ import hist
 import matplotlib.pyplot as plt
 import mplhep as hep
 import numpy as np
+import math
 from hist.intervals import ratio_uncertainty
 
 hep.style.use("CMS")
+
+def sci_2_before_decimal(x):
+    if x == 0:
+        return "0.00e+00"
+    
+    exp = int(math.floor(math.log10(abs(x))))
+    
+    # Shift exponent so mantissa has 2 digits before decimal
+    if abs(x) / 10**exp < 10:
+        exp -= 1
+    
+    mantissa = x / (10**exp)
+    
+    return f"{mantissa:.2f}e{exp:+03d}"
 
 
 def extract_mergemap(style):
@@ -33,10 +48,10 @@ def merge_hists(hist_dict, merge_map):
     and values are lists of histogram names to be merged into the key.
     """
     for k, v in merge_map.items():
-        if k in hist_dict and k != v[0]:
-            warnings.warn(
-                f"  Mapping `'{k}' : {v}` will replace existing histogram: '{k}'.", stacklevel=2
-            )
+        # if k in hist_dict and k != v[0]:
+        #     warnings.warn(
+        #         f"  Mapping `'{k}' : {v}` will replace existing histogram: '{k}'.", stacklevel=2
+        #     )
         to_merge = []
         for name in v:
             if name not in hist_dict:
@@ -48,8 +63,8 @@ def merge_hists(hist_dict, merge_map):
                 to_merge.append(hist_dict[name])
         if len(to_merge) > 0:
             hist_dict[k] = sum(to_merge)
-        else:
-            warnings.warn(f"  No histograms available for merge {v} -> '{k}'.", stacklevel=2)
+        # else:
+        #     warnings.warn(f"  No histograms available for merge {v} -> '{k}'.", stacklevel=2)
     return hist_dict
 
 
@@ -110,7 +125,7 @@ def ratio_plot(
     # --- NEW SORTING LOGIC ---
     if sort_by_yield and bkgs:
         bkg_keys_in_plot = [key for key in bkgs if key in hist_dict]
-        bkg_yields = {key: hist_dict[key].sum() for key in bkg_keys_in_plot}
+        bkg_yields = {key: sum(hist_dict[key].values()) for key in bkg_keys_in_plot}
         # print(f"Bkg yields before sorting: {bkg_yields}")
         bkgs = sorted(bkg_yields, key=bkg_yields.get, reverse=True)
         # print(f"Bkg order after sorting by yield: {bkgs}")
@@ -124,16 +139,34 @@ def ratio_plot(
     fig, (ax, rax) = plt.subplots(2, 1, gridspec_kw={"height_ratios": (3, 1)}, sharex=True)
     plt.subplots_adjust(hspace=0)
     plt.rcParams.update({"font.size": 24})
+    ax.set_yscale('log')
+
+    if(sum(tot_bkg.values()) == 0):
+        return fig, (ax, rax)
+    
+    print("----------------------")
+    print("TOTBKG", sum(tot_bkg.values()), tot_bkg.variances())
+    for sig in sigs:
+        print(sig, sum(hist_dict[sig].values()), hist_dict[sig].variances())
+    print("----------------------")
 
     if onto is None:
         hep.histplot(
-            [hist_dict[k] for k in bkgs + sigs],
+            [hist_dict[k] for k in bkgs],# + sigs],
             ax=ax,
-            label=bkgs + sigs,
+            label=bkgs,# + sigs,
             stack=True,
             histtype="fill",
-            facecolor=[style[k]["color"] for k in bkgs + sigs],
+            facecolor=[style[k]["color"] for k in bkgs],# + sigs],
         )
+        # hep.histplot(
+        #     [hist_dict[k] for k in bkgs + sigs],
+        #     ax=ax,
+        #     label=bkgs + sigs,
+        #     stack=True,
+        #     histtype="fill",
+        #     facecolor=[style[k]["color"] for k in bkgs + sigs],
+        # )
     else:
         if onto in hist_dict:
             hep.histplot(
@@ -168,6 +201,21 @@ def ratio_plot(
             linewidth=_linewidth,
         )
 
+    mc_vals = tot_bkg.values()
+    mc_vars = tot_bkg.variances()
+    mc_err  = np.sqrt(np.where(mc_vars > 0, mc_vars, 0))
+    ax.stairs(
+        np.maximum(mc_vals + mc_err, 0),
+        tot_bkg.axes[0].edges,
+        baseline=np.maximum(mc_vals - mc_err, 0),
+        fill=True,
+        color="gray",
+        alpha=0.4,
+        label="MC stat. unc.",
+        zorder=3,
+        hatch="gray"
+    )
+
     # plot data
     if data is not None:
         hep.histplot(
@@ -179,6 +227,18 @@ def ratio_plot(
             color="k",
             zorder=4,
         )
+
+    # c2v overlay
+    hep.histplot(
+        [hist_dict[k] * 1000.0 for k in sigs if k in hist_dict],
+        ax=ax,
+        label=[f"{i}_scaled" for i in sigs if i in hist_dict],
+        stack=False,
+        histtype="step",
+        color=[style[k]["color"] for k in sigs if k in hist_dict],
+        # linewidth=[2] + [0] * len( sigs),
+    )
+
 
     # Set the grid
     ax.xaxis.grid(True, which="major")
@@ -196,7 +256,19 @@ def ratio_plot(
     order = np.argsort([list(style.keys()).index(i) for i in existing_keys])
     handles, labels = ax.get_legend_handles_labels()
     handles = [handles[i] for i in order]
-    labels = [style[labels[i]]["label"] for i in order]
+    # labels_bkg= [f"{style[labels[i]]['label']}: {sum((hist_dict[labels[i]]).values()):.2e}" 
+    #           if labels[i] in hist_dict else style[labels[i]]['label']
+    #           for i in order]
+    labels_bkg= [f"{style[labels[i]]['label']}: {sci_2_before_decimal(sum((hist_dict[labels[i]]).values()))}" 
+              if labels[i] in hist_dict else labels[i]
+              for i in order]
+    labels_sig= [f"{style[i.replace('_scaled','')]['label']}\nx1000 <{sci_2_before_decimal(sum((hist_dict[i.replace('_scaled','')]).values()))}>" 
+              if "_scaled" in i else i
+              for i in labels_bkg]
+    # labels= [f"{i}: {sum((hist_dict['data']).values()):.2e}" 
+    labels= [f"{i}: {sci_2_before_decimal(sum((hist_dict['data']).values()))}" 
+              if "Data" == i else i
+              for i in labels_sig]
     _legend_fontsize = "small" if len(labels) <= 8 else "x-small"
     _ = format_legend(
         ax,

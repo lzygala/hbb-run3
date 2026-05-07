@@ -19,18 +19,18 @@ total_background:
   color: '#bd1f01'
   hatch: null
 
-vbs-hvv-c2v1p0:
-  label: $VBS\, VVH\, C_{VV}=1.0$
+vbs-hvv-c2v-1p0-c3-1p0:
+  label: $VBS\, VVH\, C_{VV}=1.0, C_{3}=1.0$
   color: '#ffa90e'
   hatch: null
 
-vbs-hvv-c2v1p5:
-  label: $VBS\, VVH\, C_{VV}=1.5$
+vbs-hvv-c2v-1p0-c3-10p0:
+  label: $VBS\, VVH\, C_{VV}=1.0, C_{3}=10.0$
   color: '#d62828'
   hatch: null
 
-vbs-hvv-c2v2p0:
-  label: $VBS\, VVH\, C_{VV}=2.0$
+vbs-hvv-c2v-1p5-c3-1p0:
+  label: $VBS\, VVH\, C_{VV}=1.5, C_{3}=1.0$
   color: '#4E5A7E'
   hatch: null
 
@@ -56,11 +56,11 @@ wqq:
   hatch: null
 
 zjets:
-  label: $Z\rightarrow q\bar{q}$
+  label: $Z + Jets$
   color: '#2a9d8f'
   hatch: null
 wjets:
-  label: $W\rightarrow q\bar{q}$
+  label: $W + Jets$
   color: '#84a98c'
   hatch: null
 
@@ -68,10 +68,6 @@ higgs:
   label: $Higgs$
   color: '#4E5A7E'
   hatch: null
-  contains:
-  - ggf-hbb
-  - vh-hbb
-  - vbf-hbb
 
 top:
   label: Top

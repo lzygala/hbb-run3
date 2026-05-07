@@ -38,22 +38,11 @@ import matplotlib.pyplot as plt
 import mplhep as hep
 import yaml
 from plotting import ratio_plot, c2vonly_plot
-from axis_info import column_to_axis
+from axis_info import axis_to_column
 
 from hbb.common_vars import LUMI
 
 hep.style.use("CMS")
-
-# --- Globals for Plotting Logic ---
-process_grouping = {
-    "QCD": ["qcd"],
-    "Z->qq": ["zjets"],
-    "W->qq": ["wjets"],
-    "Top": ["tt", "singletop"],
-    "Other": ["diboson", "ewkv"],
-    "H->bb": ["ggf-hbb", "vbf-hbb", "vh-hbb"],
-}
-
 
 mass_lo = 115  # GeV, lower edge of the mass window to blind
 mass_hi = 135  # GeV, upper edge of the mass window to blind
@@ -128,33 +117,25 @@ def plot_c2vsignal(hists, category, year_str, outdir, region, style):
 
     # Project all raw histograms to 1D for this pt bin
     histograms_to_plot = {}
-    for column in hists.keys():
-        for process, h in hists[column].items():
+    for axis_label in hists.keys():
+        for process, h in hists[axis_label].items():
+            column = axis_to_column[axis_label]
             if not category in h.axes[1]:
                 continue
-            h_proj = h[:, category].project(column_to_axis[column])
+            h_proj = h[:, category].project(axis_label)
 
             # if not "c2v" in process:
             #     continue
             histograms_to_plot[process] = h_proj
-            print(process, h_proj.values().sum(), h_proj.values())
+            print(process, h_proj.values().sum())
 
         # Define the lists of signals and backgrounds using the final group names
         # These names must have a corresponding entry in the style file with a 'contains' key
         bkg_order = ["zjets", "wjets", "other","qcd","top","higgs"]
         # signals = ["higgs", "vbs-hvv-c2v1p5", "vbs-hvv-c2v2p0", "vbs-hvv-c2v1p0"]
-        signals = ["zjets"]
+        signals = ["vbs-hvv-c2v-1p0-c3-1p0", "vbs-hvv-c2v-1p0-c3-10p0", "vbs-hvv-c2v-1p5-c3-1p0"]
 
         legend_title = f"{category.capitalize()} Region"
-
-        # fig, (ax, rax) = c2vonly_plot(
-        #     histograms_to_plot,
-        #     sigs=signals,
-        #     bkgs=bkg_order,
-        #     style=style,
-        #     sort_by_yield=True,
-        #     legend_title=legend_title,
-        # )
 
         fig, (ax, rax) = ratio_plot(
             histograms_to_plot,
@@ -177,7 +158,7 @@ def plot_c2vsignal(hists, category, year_str, outdir, region, style):
             year=year_str,
         )
 
-        output_name = f"{outdir}/{year_str}_{region}_{category}_process_{column}.png"
+        output_name = f"{outdir}/{year_str}_{region}_{category}_process_{axis_label}_{column}.png"
         fig.savefig(output_name, dpi=300, bbox_inches="tight")
         plt.close(fig)
 
@@ -388,7 +369,7 @@ def main(args):
         print(f"Plotting QCD pass/fail shapes for year: {year_str}...")
         plot_qcd_shapes(histograms, year_str, args.outdir, args.region, args.norm_type)
     elif args.plot_type == "c2vsignal":
-        for category in ["preselection"]:
+        for category in ["preselection", "preselection_ee", "preselection_mumu", "preselection_emu", "signal_region"]:
             print(f"Plotting C2V signal shapes for category: {category}, year: {year_str}...")
             plot_c2vsignal(histograms, category, year_str, args.outdir, args.region, style)
 
