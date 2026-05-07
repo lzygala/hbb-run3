@@ -65,8 +65,8 @@ def highpt_muons(muons: MuonArray, pt_type):
 
     sel = (
         (getattr(loosemuons, pt_type) > 30)
-        & (loosemuons.highPtId == 2) #1=pass tracker highPtId, 2=pass global highPtId
-        & (loosemuons.isGlobal)
+        & (loosemuons.tightId) #1=pass tracker highPtId, 2=pass global highPtId
+        # & (loosemuons.isGlobal)
     )
     return loosemuons[sel]
 
@@ -95,30 +95,8 @@ def set_ak4jets(jets: JetArray, isRealData: bool, year: str, nano_version: str, 
     # https://gitlab.cern.ch/cms-jetmet/coordination/coordination/-/issues/117#note_8880716
     """
 
-    if year == "2018" or year == "2017" or "2016" in year:
-        jets["jetidtight"] = jets.jetId > 1
-        jets["jetidtightlepveto"] = jets.jetId > 2
-    elif "v12" in nano_version:
-
-        jetidtightbit = (jets.jetId & 2) == 2
-        jetidtight = (
-            ((np.abs(jets.eta) <= 2.7) & jetidtightbit)
-            | (
-                ((np.abs(jets.eta) > 2.7) & (np.abs(jets.eta) <= 3.0))
-                & jetidtightbit
-                & (jets.neHEF >= 0.99)
-            )
-            | ((np.abs(jets.eta) > 3.0) & jetidtightbit & (jets.neEmEF < 0.4))
-        )
-
-        jetidtightlepveto = (
-            (np.abs(jets.eta) <= 2.7) & jetidtight & (jets.muEF < 0.8) & (jets.chEmEF < 0.8)
-        ) | ((np.abs(jets.eta) > 2.7) & jetidtight)
-
-        jets["jetidtight"] = jetidtight
-        jets["jetidtightlepveto"] = jetidtightlepveto
-    else:
-        jets = correct_jetid(jets, "AK4", year)
+    jets["jetidtight"] = jets.jetId > 1
+    jets["jetidtightlepveto"] = jets.jetId > 2
 
     # TODO: Add PNet pt regression
 
@@ -156,10 +134,7 @@ def set_ak8jets(fatjets: FatJetArray, isRealData: bool, year: str, nano_version:
     if "v12" in nano_version:
         fatjets["jetidtight"] = fatjets.isTight
     else:
-        if year == "2018" or year == "2017":
-            fatjets["jetidtight"] = fatjets.jetId > 1
-        else:
-            fatjets = correct_jetid(fatjets, "AK8", year)
+        fatjets["jetidtight"] = fatjets.jetId > 1
 
         fatjets["ParTPQCD"] = fatjets.globalParT3_QCD
         fatjets["ParTPXbb"] = fatjets.globalParT3_Xbb

@@ -14,19 +14,6 @@ from coffea.ml_tools import xgboost_wrapper
 from hist.dask import Hist
 
 from hbb.corrections import (
-    add_btag_weights,
-    add_muon_weights,
-    add_pdf_weight,
-    add_photon_weights,
-    add_pileup_weight,
-    add_ps_weight,
-    add_scalevar_3pt,
-    add_scalevar_7pt,
-    apply_jerc,
-    correct_met,
-    correct_muons,
-    get_jetveto_event,
-    lumiMasks,
     mupt_variations,
 )
 from hbb.jerc_eras import jerc_variations, run_map
@@ -151,6 +138,7 @@ class categorizer(SkimmerABC):
     def __init__(
         self,
         year="2022",
+        isData=False,
         nano_version="v12",
         xsecs: dict = None,
         systematics=False,
@@ -159,12 +147,14 @@ class categorizer(SkimmerABC):
         evaluate_BDT=True,
         btag_eff=False,
         save_skim_nosysts=False,
+        dataset=""
     ):
         super().__init__()
 
         self.XSECS = xsecs if xsecs is not None else {}  # in pb
-
+        self._dataset = dataset
         self._year = year
+        self._isData = isData
         self._nano_version = nano_version
         self._systematics = systematics
         self._skip_syst = save_skim_nosysts
@@ -192,8 +182,8 @@ class categorizer(SkimmerABC):
         self.make_output = lambda: {
             "cutflow": Hist.new.StrCat([], growth=True, name="region", label="Region")
             .StrCat([], growth=True, name="dataset", label="Dataset")
+            .Reg(4, 0, 10000, name="h_pt", label="Higgs AK8 pt")
             .Reg(15, 0, 15, name="cut", label="Cut index")
-            .Variable([0, 1, 2, 3, 4], name="genflavor", label="Gen. jet flavor")
             .Weight(),
             "btagWeight": Hist.new.Reg(50, 0, 3, name="val", label="BTag correction").Weight(),
             "skim": {},
@@ -273,18 +263,13 @@ class categorizer(SkimmerABC):
         weight_str = f"REGION{region}_"
 
         btag_SF = ak.ones_like(events.run)
-        if not self._skip_syst:
+        # if not self._skip_syst:
 
             # if not self._btag_eff and btag_jets is not None:
             #     btag_SF = add_btag_weights(
             #         weights, btag_jets, self._btagger, self._btag_wp, self._year, alt_str=weight_str
             #     )
 
-            if muons is not None:
-                add_muon_weights(weights, self._year, muons, self._mupt_type, muon_type, alt_str=weight_str)
-
-            if photons is not None:
-                add_photon_weights(weights, self._year, photons, alt_str=weight_str)
 
         return btag_SF
 
@@ -338,8 +323,9 @@ class categorizer(SkimmerABC):
 
         if "2022" in self._year or "2023" in self._year:
             return
-        dataset = events.metadata["dataset"]
+        dataset = self._dataset
         isRealData = events.isData == 1
+        isRealData_cutflow = self._isData
         selection = PackedSelection()
         output = self.make_output() if not self._btag_eff else self.make_btag_output()
         weights = Weights(None, storeIndividual=True)
@@ -354,44 +340,13 @@ class categorizer(SkimmerABC):
         # selection.add("trigger", trigger)
         # del trigger
 
-        #part of the below jec TODO
-        # mc_run = "mc"
-        # if isRealData:
-        #     for keys, value in run_map.items():
-        #         if any(k in dataset for k in keys):
-        #             mc_run = value
-        #             break
-        # jec_key = f"{self._year}_{mc_run}"
-
         fatjets = set_ak8jets(events.fatjet, isRealData, self._year, self._nano_version)
         jets = set_ak4jets(events.jet, isRealData, self._year, self._nano_version)
 
         met = events.met
 
-        #TODO --- Find out the jerc situation in rdf
-        # Apply jerc corrections to jets, fatjets, and met collections
-        # if not self._skip_syst:
-        #     jets = apply_jerc(jets, "AK4", self._year, jec_key)
-        #     fatjets = apply_jerc(fatjets, "AK8", self._year, jec_key)
-        #     met = correct_met(met, jets)  # PuppiMET Recommended for Run3
-
-        # # Select jets, fatjets, and met collections according to jerc variation shift
-        # if shift_name != "nominal" and "Muon" not in shift_name:
-        #     var, direction = shift_name.split("_")
-        #     attr = jerc_variations[var]
-        #     if var in ("JES", "JER"):
-        #         jets = getattr(getattr(jets, attr), direction.lower())
-        #         fatjets = getattr(getattr(fatjets, attr), direction.lower())
-        #         met = getattr(getattr(met, attr), direction.lower())
-        #     elif var == "UES":
-        #         met = getattr(getattr(met, attr), direction.lower())
-
         goodfatjets = good_ak8jets(fatjets)
         goodjets = good_ak4jets(jets)
-
-        # cut_jetveto = get_jetveto_event(jets, self._year)
-        # selection.add("ak4jetveto", cut_jetveto)
-
         
         # ----- LEPTONS -----
         # v15 corrections not available for run2 ul - so not implemented in current test - /cvmfs/cms-griddata.cern.ch/cat/metadata//MUO/
@@ -429,8 +384,11 @@ class categorizer(SkimmerABC):
         selection.add("lepdR", (leadinglep.delta_r(subleadinglep) > 0.5))
         selection.add("sameflavor", leadinglep.flavor == subleadinglep.flavor)
 
-        selection.add("inZpeak", ((lep_mass) <= 96) & ((lep_mass) >= 86))
-        selection.add("notZpeak", ((lep_mass) >= 96) | ((lep_mass) <= 86))
+        inZpeak = ((lep_mass) <= 101) & ((lep_mass) >= 81)
+        notZpeak = ((lep_mass) >= 101) | ((lep_mass) <= 81)
+
+        selection.add("inZpeak", inZpeak)
+        selection.add("notZpeak", (notZpeak) | (leadinglep.flavor != subleadinglep.flavor))
 
         selection.add("onemuon", (nmuons == 1) & (nelectrons == 0))
         selection.add("muonkin", (getattr(leadingmuon, self._mupt_type) > 55.0) & (abs(leadingmuon.eta) < 2.1))
@@ -770,6 +728,23 @@ class categorizer(SkimmerABC):
                 # Fill cutflow hist
                 allcuts = set()
                 cut = selection.all(*allcuts)
+                output["cutflow"].fill(
+                    dataset=dataset,
+                    region=region,
+                    h_pt=self.normalize(candidatejet.pt, None),
+                    cut=0,
+                    weight=nominal_weight,
+                )
+                for i, cut in enumerate(selections):
+                    allcuts.add(cut)
+                    cumulative_cut = selection.all(*allcuts)
+                    output["cutflow"].fill(
+                        dataset=dataset,
+                        region=region,
+                        h_pt=self.normalize(candidatejet.pt, cumulative_cut),
+                        cut=i + 1,
+                        weight=nominal_weight[cumulative_cut],
+                    )
                 # Fill btag SF hist
                 cut = selection.all(*selections)
                 output["btagWeight"].fill(val=self.normalize(btag_SF, cut))
