@@ -655,7 +655,7 @@ class categorizer(SkimmerABC):
             self.add_common_weights(weights, events, dataset)
             # signal regions
             btag_SF = self.add_region_weights(
-                "signal", weights, events, btag_jets=ak4_opphem_ak8
+                "signal", weights, events, btag_jets=ak4_outside_ak8
             )
             # muon region
             btag_SF_mu = self.add_region_weights(
@@ -699,7 +699,8 @@ class categorizer(SkimmerABC):
                 "metfilter",
                 "ak4jetveto",
                 "minjetkin",
-                "antiak4btagMediumOppHem",
+                # "antiak4btagMediumOppHem",
+                "antiak4btagMedium",
                 "lowmet",
                 "noleptons",
             ],
@@ -709,7 +710,8 @@ class categorizer(SkimmerABC):
                 "metfilter",
                 "ak4jetveto",
                 "minjetkin",
-                "antiak4btagMediumOppHem",
+                # "antiak4btagMediumOppHem",
+                "antiak4btagMedium",
                 "lowmet",
                 "noleptons",
                 "notvbf",
@@ -721,7 +723,8 @@ class categorizer(SkimmerABC):
                 "metfilter",
                 "ak4jetveto",
                 "minjetkin",
-                "antiak4btagMediumOppHem",
+                # "antiak4btagMediumOppHem",
+                "antiak4btagMedium",
                 "lowmet",
                 "noleptons",
                 "notvbf",
@@ -733,7 +736,8 @@ class categorizer(SkimmerABC):
                 "metfilter",
                 "ak4jetveto",
                 "minjetkin",
-                "antiak4btagMediumOppHem",
+                # "antiak4btagMediumOppHem",
+                "antiak4btagMedium",
                 "lowmet",
                 "noleptons",
                 "isvbf",
