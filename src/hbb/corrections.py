@@ -593,7 +593,7 @@ def add_VJets_corrections(weights: Weights, dataset: str, genpart):
         ])
     vpt = ak.fill_none(boson.pt, 0.)
 
-    Zjets_pref = ["DYto2L-2Jets_MLL-50", "Zto2Q-4Jets_Bin-HT", "Zto2Q-4Jets_HT"]
+    Zjets_pref = ["DYto2L-2Jets_MLL-50", "DYto2E-2Jets_MLL-50", "DYto2Mu-2Jets_MLL-50", "Zto2Q-4Jets_Bin-HT", "Zto2Q-4Jets_HT"]
     Wjets_pref = ["WtoLNu-2Jets", "Wto2Q-3Jets_Bin-HT", "Wto2Q-3Jets_HT"]
     isZ_dataset = any(ds in dataset for ds in Zjets_pref)
     isW_dataset = any(ds in dataset for ds in Wjets_pref)
@@ -620,7 +620,7 @@ def add_VJets_corrections(weights: Weights, dataset: str, genpart):
         for syst in systlist:
             weights.add(syst, ones, ewkcorr.evaluate(syst + "_up", vpt) / ewknom, ewkcorr.evaluate(syst + "_down", vpt) / ewknom)
 
-    file = f"{package_path}/hbb/data/vjets/vjets_corrections.json"
+    file = f"{package_path}/hbb/data/vjets/vjets_corrections_2flavorDY.json"
     vjets_kfactors = correctionlib.CorrectionSet.from_file(file)
 
     if isZ_dataset:
