@@ -803,6 +803,13 @@ class categorizer(SkimmerABC):
             else:
                 egamma_trigger_booleans[t] = ak.values_astype(ak.zeros_like(events.run), bool)
 
+        jetmet_trigger_booleans = {}
+        for t in self._triggers[self._year]:
+            if t in events.HLT.fields:
+                jetmet_trigger_booleans[t] = events.HLT[t]
+            else:
+                jetmet_trigger_booleans[t] = ak.values_astype(ak.zeros_like(events.run), bool)
+
         if self._btag_eff:
             cut = selection.all(*btag_eff_cuts)
             flat_gj = ak.flatten(goodjets)
@@ -857,6 +864,7 @@ class categorizer(SkimmerABC):
                 "genWeight": gen_weight,
                 **gen_variables,
                 **egamma_trigger_booleans,
+                **jetmet_trigger_booleans,
             }
             if self._evaluate_BDT:
                 output_array.update({"BDT_score": bdt_scores})
