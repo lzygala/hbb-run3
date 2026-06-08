@@ -198,7 +198,7 @@ if __name__ == "__main__":
         help="year",
         type=str,
         default="2023",
-        choices=["2018", "2022", "2022EE", "2023", "2023BPix", "2024"],
+        choices=["2016APV", "2016", "2017", "2018", "2022", "2022EE", "2023", "2023BPix", "2024"],
     )
     parser.add_argument(
         "--dataset",

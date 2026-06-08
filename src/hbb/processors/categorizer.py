@@ -138,7 +138,6 @@ class categorizer(SkimmerABC):
     def __init__(
         self,
         year="2022",
-        isData=False,
         nano_version="v12",
         xsecs: dict = None,
         systematics=False,
@@ -154,7 +153,7 @@ class categorizer(SkimmerABC):
         self.XSECS = xsecs if xsecs is not None else {}  # in pb
         self._dataset = dataset
         self._year = year
-        self._isData = isData
+        self._isData = "_Run20" in self._dataset
         self._nano_version = nano_version
         self._systematics = systematics
         self._skip_syst = save_skim_nosysts
@@ -164,10 +163,6 @@ class categorizer(SkimmerABC):
         self._skim_outpath = skim_outpath
         self._evaluate_BDT = evaluate_BDT
         self._btag_eff = btag_eff
-        self._btagger, self._btag_wp = "btagPNetB", "M"
-        if nano_version == "v15":
-            self._btagger = "btagUParTAK4B"
-        self._btag_cut = b_taggers[self._year]["AK4"][self._btagger][self._btag_wp]
         self._mupt_type = "pt" #"ptcorr"
         if self._evaluate_BDT:
             self.bdt_model = get_BDT_model("src/hbb/data/MultiClassBDT_23Oct25.ubj")
@@ -324,8 +319,6 @@ class categorizer(SkimmerABC):
         if "2022" in self._year or "2023" in self._year:
             return
         dataset = self._dataset
-        isRealData = events.isData == 1
-        isRealData_cutflow = self._isData
         selection = PackedSelection()
         output = self.make_output() if not self._btag_eff else self.make_btag_output()
         weights = Weights(None, storeIndividual=True)
@@ -340,8 +333,8 @@ class categorizer(SkimmerABC):
         # selection.add("trigger", trigger)
         # del trigger
 
-        fatjets = set_ak8jets(events.fatjet, isRealData, self._year, self._nano_version)
-        jets = set_ak4jets(events.jet, isRealData, self._year, self._nano_version)
+        fatjets = set_ak8jets(events.fatjet, self._isData, self._year, self._nano_version)
+        jets = set_ak4jets(events.jet, self._isData, self._year, self._nano_version)
 
         met = events.met
 
@@ -469,17 +462,15 @@ class categorizer(SkimmerABC):
 
         self.add_common_weights(weights, events, dataset)
         # signal regions
-        btag_SF = self.add_region_weights(
-            "signal", weights, events, btag_jets=ak4_outside_ak8
-        )
+        btag_SF = self.add_region_weights("signal", weights, events, btag_jets=ak4_outside_ak8)
 
 
         weights_dict, totals_temp = self.get_weight_dict("signal", weights, events, dataset)
 
-        for d, gen_func in gen_selection_dict.items():
-            if d in dataset:
-                # match goodfatjets
-                gen_variables = gen_func(events, goodfatjets)
+        # for d, gen_func in gen_selection_dict.items():
+        #     if d in dataset:
+        #         # match goodfatjets
+        #         gen_variables = gen_func(events, goodfatjets)
 
         # ------ Boson Gen Matching
         # bosons = getBosons(events.GenPart)
@@ -552,7 +543,9 @@ class categorizer(SkimmerABC):
         tic = time.time()
 
         nominal_weight = weights_dict["weight"]
-        gen_weight = events.baseweight / events.xsecweight
+        if self._isData:
+            nominal_weight = ak.ones_like(events.run)
+        gen_weight = weights_dict["weight_noxsec"]
 
         if self._btag_eff:
             cut = selection.all(*btag_eff_cuts)
@@ -616,7 +609,7 @@ class categorizer(SkimmerABC):
                 "SubLeadingLep_eta": subleadinglep.eta,
                 "weight": nominal_weight,
                 "genWeight": gen_weight,
-                **gen_variables,
+                # **gen_variables,
             }
 
             # reduced output array for energy variation shift

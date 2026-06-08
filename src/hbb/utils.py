@@ -128,7 +128,7 @@ def load_samples(
             search_path = Path(data_dir / dataset / "parquet" / "nominal" / region)
             if variation:
                 search_path = Path(data_dir / dataset /  "parquet" / variation / region)
-            print(f"\n[DEBUG] Script is searching in path: {search_path}\n")
+            # print(f"\n[DEBUG] Script is searching in path: {search_path}\n")
 
             # --- REPLACE THE OLD 'try' BLOCK WITH THIS ---
             try:

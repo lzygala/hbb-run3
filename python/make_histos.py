@@ -110,7 +110,8 @@ def main(args):
     region = args.region
 
     MAIN_DIR = "/eos/uscms/store/group/lpchbbrun3/"
-    dir_name = "lzygala/hvv_26May6/merged_2lep_1FJ_r3_2lep_1FJ_20260430155132/"
+    dir_name = "lzygala/hvv_26May11/merged_2lep_1FJ_r3_2lep_1FJ_20260506174059/"
+    # dir_name = "lzygala/hvv_26May11/merged_2lep_1FJ_r2_2lep_1FJ_20260506173848/"
     path_to_dir = f"{MAIN_DIR}/{dir_name}/"
 
     load_columns = [
@@ -213,7 +214,7 @@ if __name__ == "__main__":
         help="year",
         type=str,
         required=True,
-        choices=["2018", "2022", "2022EE", "2023", "2023BPix", "2024"],
+        choices=["2018", "2016", "2016APV", "2017","2022", "2022EE", "2023", "2023BPix", "2024"],
     )
     parser.add_argument(
         "--region",

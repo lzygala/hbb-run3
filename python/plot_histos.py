@@ -154,11 +154,13 @@ def plot_c2vsignal(hists, category, year_str, outdir, region, style):
             ax=ax,
             lumi=luminosity,
             lumi_format="{:0.1f}",
-            com=13.6,
+            com=13.0,
             year=year_str,
         )
 
-        output_name = f"{outdir}/{year_str}_{region}_{category}_process_{axis_label}_{column}.png"
+        f_outdir = Path(f"{outdir}/{category}")
+        f_outdir.mkdir(parents=True, exist_ok=True)
+        output_name = f"{f_outdir}/{year_str}_{region}_{category}_process_{axis_label}_{column}.png"
         fig.savefig(output_name, dpi=300, bbox_inches="tight")
         plt.close(fig)
 
@@ -330,20 +332,23 @@ def plot_qcd_shapes(hists, year_str, outdir, region, norm_type):
 # --- Main Function: The Control Center ---
 def main(args):
     histograms = {}
-    year_str = "all-years" if len(args.year) > 3 else "-".join(args.year)
+    year_str = "-".join(args.year)
 
     for year in args.year:
+        print(year)
         pkl_path = Path(args.indir) / f"histograms_{year}_{args.region}.pkl"
         if not pkl_path.exists():
             print(f"Error: File not found at {pkl_path}. Skipping.")
             continue
         with pkl_path.open("rb") as f:
             histograms_tmp = pickle.load(f)
-            for process, h in histograms_tmp.items():
-                if process in histograms:
-                    histograms[process] += h
-                else:
-                    histograms[process] = h
+            for axis in histograms_tmp:
+                histograms[axis] = {}
+                for process, h in histograms_tmp[axis].items():
+                    if process in histograms[axis]:
+                        histograms[axis][process] += h
+                    else:
+                        histograms[axis][process] = h
 
     if not histograms:
         print("No histograms were loaded. Exiting.")
@@ -382,7 +387,7 @@ if __name__ == "__main__":
         type=str,
         required=True,
         nargs="+",
-        choices=["2022", "2022EE", "2023", "2023BPix", "2024"],
+        choices=["2022", "2022EE", "2023", "2023BPix", "2024", "2016", "2016APV", "2017", "2018"],
     )
     parser.add_argument("--indir", help="Input directory for .pkl files", type=str, required=True)
     parser.add_argument("--outdir", help="Output directory for plots", type=str, required=True)

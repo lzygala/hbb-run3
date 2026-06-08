@@ -10,8 +10,6 @@ from coffea.nanoevents.methods.nanoaod import (
     PhotonArray,
 )
 
-from hbb.corrections import correct_jetid
-
 
 def trig_match_sel(
     events, objects, trig_objects, year, trigger, filterbit, ptcut, HLTs, trig_dR=0.2

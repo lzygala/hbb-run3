@@ -183,24 +183,24 @@ common_mc = {
         
         },
     },
-        "2016":{
+    "2016":{
         "vbs-hvv-c2v-1p0-c3-1p0": {
-            "VBSWWH_OS_c2v1p0_c3_1p0_Run3Summer24",
-            "VBSWWH_SS_c2v1p0_c3_1p0_Run3Summer24",
-            "VBSZZH_c2v1p0_c3_1p0_Run3Summer24",
-            "VBSWZH_c2v1p0_c3_1p0_Run3Summer24",
+            "VBSWWH_OS_c2v1p0_c3_1p0_UL16",
+            "VBSWWH_SS_c2v1p0_c3_1p0_UL16",
+            "VBSZZH_c2v1p0_c3_1p0_UL16",
+            "VBSWZH_c2v1p0_c3_1p0_UL16",
         },
         "vbs-hvv-c2v-1p0-c3-10p0": {
-            "VBSWWH_OS_c2v1p0_c3_10p0_Run3Summer24",
-            "VBSWWH_SS_c2v1p0_c3_10p0_Run3Summer24",
-            "VBSZZH_c2v1p0_c3_10p0_Run3Summer24",
-            "VBSWZH_c2v1p0_c3_10p0_Run3Summer24",
+            "VBSWWH_OS_c2v1p0_c3_10p0_UL16",
+            "VBSWWH_SS_c2v1p0_c3_10p0_UL16",
+            "VBSZZH_c2v1p0_c3_10p0_UL16",
+            "VBSWZH_c2v1p0_c3_10p0_UL16",
         },
         "vbs-hvv-c2v-1p5-c3-1p0": {
-            "VBSWWH_OS_c2v1p5_c3_1p0_Run3Summer24",
-            "VBSWWH_SS_c2v1p5_c3_1p0_Run3Summer24",
-            "VBSZZH_c2v1p5_c3_1p0_Run3Summer24",
-            "VBSWZH_c2v1p5_c3_1p0_Run3Summer24",
+            "VBSWWH_OS_c2v1p5_c3_1p0_UL16",
+            "VBSWWH_SS_c2v1p5_c3_1p0_UL16",
+            "VBSZZH_c2v1p5_c3_1p0_UL16",
+            "VBSWZH_c2v1p5_c3_1p0_UL16",
         },
         "higgs": {
             "ggZH_HToBB_ZToBB_M-125_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL16NanoAODv15-150X_mcRun2_asymptotic_v1-v1_NANOAODSIM",
@@ -336,26 +336,24 @@ common_mc = {
         }
     },
 
-
-
     "2016APV":{
         "vbs-hvv-c2v-1p0-c3-1p0": {
-            "VBSWWH_OS_c2v1p0_c3_1p0_Run3Summer24",
-            "VBSWWH_SS_c2v1p0_c3_1p0_Run3Summer24",
-            "VBSZZH_c2v1p0_c3_1p0_Run3Summer24",
-            "VBSWZH_c2v1p0_c3_1p0_Run3Summer24",
+            "VBSWWH_OS_c2v1p0_c3_1p0_UL16APV",
+            "VBSWWH_SS_c2v1p0_c3_1p0_UL16APV",
+            "VBSZZH_c2v1p0_c3_1p0_UL16APV",
+            "VBSWZH_c2v1p0_c3_1p0_UL16APV",
         },
         "vbs-hvv-c2v-1p0-c3-10p0": {
-            "VBSWWH_OS_c2v1p0_c3_10p0_Run3Summer24",
-            "VBSWWH_SS_c2v1p0_c3_10p0_Run3Summer24",
-            "VBSZZH_c2v1p0_c3_10p0_Run3Summer24",
-            "VBSWZH_c2v1p0_c3_10p0_Run3Summer24",
+            "VBSWWH_OS_c2v1p0_c3_10p0_UL16APV",
+            "VBSWWH_SS_c2v1p0_c3_10p0_UL16APV",
+            "VBSZZH_c2v1p0_c3_10p0_UL16APV",
+            "VBSWZH_c2v1p0_c3_10p0_UL16APV",
         },
         "vbs-hvv-c2v-1p5-c3-1p0": {
-            "VBSWWH_OS_c2v1p5_c3_1p0_Run3Summer24",
-            "VBSWWH_SS_c2v1p5_c3_1p0_Run3Summer24",
-            "VBSZZH_c2v1p5_c3_1p0_Run3Summer24",
-            "VBSWZH_c2v1p5_c3_1p0_Run3Summer24",
+            "VBSWWH_OS_c2v1p5_c3_1p0_UL16APV",
+            "VBSWWH_SS_c2v1p5_c3_1p0_UL16APV",
+            "VBSZZH_c2v1p5_c3_1p0_UL16APV",
+            "VBSWZH_c2v1p5_c3_1p0_UL16APV",
         },
         "higgs": {
             "WminusH_HToBB_WToLNu_M-125_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL16NanoAODAPVv15-150X_mcRun2_asymptotic_preVFP_v1-v1_NANOAODSIM",
@@ -493,27 +491,24 @@ common_mc = {
         }
         },
 
-
-
-
     "2017":{
         "vbs-hvv-c2v-1p0-c3-1p0": {
-            "VBSWWH_OS_c2v1p0_c3_1p0_Run3Summer24",
-            "VBSWWH_SS_c2v1p0_c3_1p0_Run3Summer24",
-            "VBSZZH_c2v1p0_c3_1p0_Run3Summer24",
-            "VBSWZH_c2v1p0_c3_1p0_Run3Summer24",
+            "VBSWWH_OS_c2v1p0_c3_1p0_UL17",
+            "VBSWWH_SS_c2v1p0_c3_1p0_UL17",
+            "VBSZZH_c2v1p0_c3_1p0_UL17",
+            "VBSWZH_c2v1p0_c3_1p0_UL17",
         },
         "vbs-hvv-c2v-1p0-c3-10p0": {
-            "VBSWWH_OS_c2v1p0_c3_10p0_Run3Summer24",
-            "VBSWWH_SS_c2v1p0_c3_10p0_Run3Summer24",
-            "VBSZZH_c2v1p0_c3_10p0_Run3Summer24",
-            "VBSWZH_c2v1p0_c3_10p0_Run3Summer24",
+            "VBSWWH_OS_c2v1p0_c3_10p0_UL17",
+            "VBSWWH_SS_c2v1p0_c3_10p0_UL17",
+            "VBSZZH_c2v1p0_c3_10p0_UL17",
+            "VBSWZH_c2v1p0_c3_10p0_UL17",
         },
         "vbs-hvv-c2v-1p5-c3-1p0": {
-            "VBSWWH_OS_c2v1p5_c3_1p0_Run3Summer24",
-            "VBSWWH_SS_c2v1p5_c3_1p0_Run3Summer24",
-            "VBSZZH_c2v1p5_c3_1p0_Run3Summer24",
-            "VBSWZH_c2v1p5_c3_1p0_Run3Summer24",
+            "VBSWWH_OS_c2v1p5_c3_1p0_UL17",
+            "VBSWWH_SS_c2v1p5_c3_1p0_UL17",
+            "VBSZZH_c2v1p5_c3_1p0_UL17",
+            "VBSWZH_c2v1p5_c3_1p0_UL17",
         },
         "higgs": {
             "GluGluZH_HToWWTo2L2Nu_M-125_TuneCP5_13TeV-powheg-pythia8_RunIISummer20UL17NanoAODv15-150X_mc2017_realistic_v1-v1_NANOAODSIM",
@@ -605,6 +600,7 @@ common_mc = {
             "ZZTo4Q_5f_TuneCP5_13TeV-amcatnloFXFX-pythia8_RunIISummer20UL17NanoAODv15-150X_mc2017_realistic_v1-v1_NANOAODSIM",
             "ZZ_TuneCP5_13TeV-pythia8_RunIISummer20UL17NanoAODv15-150X_mc2017_realistic_v1-v1_NANOAODSIM",
 
+            'SSWW_TuneCP5_13TeV-madgraph-pythia8_RunIISummer20UL17NanoAODv15-150X_mc2017_realistic_v1-v1_NANOAODSIM'
 
                     },
         "triboson": {
@@ -663,22 +659,22 @@ common_mc = {
 
     "2018":{
         "vbs-hvv-c2v-1p0-c3-1p0": {
-            "VBSWWH_OS_c2v1p0_c3_1p0_Run3Summer24",
-            "VBSWWH_SS_c2v1p0_c3_1p0_Run3Summer24",
-            "VBSZZH_c2v1p0_c3_1p0_Run3Summer24",
-            "VBSWZH_c2v1p0_c3_1p0_Run3Summer24",
+            "VBSWWH_OS_c2v1p0_c3_1p0_UL18",
+            "VBSWWH_SS_c2v1p0_c3_1p0_UL18",
+            "VBSZZH_c2v1p0_c3_1p0_UL18",
+            "VBSWZH_c2v1p0_c3_1p0_UL18",
         },
         "vbs-hvv-c2v-1p0-c3-10p0": {
-            "VBSWWH_OS_c2v1p0_c3_10p0_Run3Summer24",
-            "VBSWWH_SS_c2v1p0_c3_10p0_Run3Summer24",
-            "VBSZZH_c2v1p0_c3_10p0_Run3Summer24",
-            "VBSWZH_c2v1p0_c3_10p0_Run3Summer24",
+            "VBSWWH_OS_c2v1p0_c3_10p0_UL18",
+            "VBSWWH_SS_c2v1p0_c3_10p0_UL18",
+            "VBSZZH_c2v1p0_c3_10p0_UL18",
+            "VBSWZH_c2v1p0_c3_10p0_UL18",
         },
         "vbs-hvv-c2v-1p5-c3-1p0": {
-            "VBSWWH_OS_c2v1p5_c3_1p0_Run3Summer24",
-            "VBSWWH_SS_c2v1p5_c3_1p0_Run3Summer24",
-            "VBSZZH_c2v1p5_c3_1p0_Run3Summer24",
-            "VBSWZH_c2v1p5_c3_1p0_Run3Summer24",
+            "VBSWWH_OS_c2v1p5_c3_1p0_UL18",
+            "VBSWWH_SS_c2v1p5_c3_1p0_UL18",
+            "VBSZZH_c2v1p5_c3_1p0_UL18",
+            "VBSWZH_c2v1p5_c3_1p0_UL18",
         },
         "higgs": {
             "GluGluHToZZTo4L_M125_TuneCP5_13TeV_powheg2_JHUGenV7011_pythia8_RunIISummer20UL18NanoAODv15-150X_mc2018_realistic_v1-v1_NANOAODSIM",
@@ -763,6 +759,7 @@ common_mc = {
             "ZZTo4L_M-1toInf_TuneCP5_13TeV_powheg_pythia8_RunIISummer20UL18NanoAODv15-150X_mc2018_realistic_v1-v1_NANOAODSIM",
             "ZZTo4Q_5f_TuneCP5_13TeV-amcatnloFXFX-pythia8_RunIISummer20UL18NanoAODv15-150X_mc2018_realistic_v1-v1_NANOAODSIM",
             "ZZ_TuneCP5_13TeV-pythia8_RunIISummer20UL18NanoAODv15-150X_mc2018_realistic_v1-v1_NANOAODSIM",
+            'SSWW_TuneCP5_13TeV-madgraph-pythia8_RunIISummer20UL18NanoAODv15-150X_mc2018_realistic_v1-v1_NANOAODSIM'
 
 
         },
@@ -864,7 +861,7 @@ data_by_year = {
         "SingleMuon_Run2017E-UL2017_NanoAODv15-v1_NANOAOD",
         "SingleMuon_Run2017F-UL2017_NanoAODv15-v1_NANOAOD",
     },
-    "2016": {
+    "2016APV": {
         "DoubleEG_Run2016B-HIPM_UL2016_NanoAODv15-v1_NANOAOD",
         "DoubleEG_Run2016B-HIPM_UL2016_NanoAODv15_v2-v1_NANOAOD",
         "DoubleEG_Run2016C-HIPM_UL2016_NanoAODv15-v1_NANOAOD",
@@ -896,7 +893,7 @@ data_by_year = {
         "SingleMuon_Run2016E-HIPM_UL2016_NanoAODv15-v1_NANOAOD",
         "SingleMuon_Run2016F-HIPM_UL2016_NanoAODv15-v1_NANOAOD",
     },
-    "2016APV": {
+    "2016": {
         "DoubleEG_Run2016F-UL2016_NanoAODv15-v1_NANOAOD",
         "DoubleEG_Run2016G-UL2016_NanoAODv15-v1_NANOAOD",
         "DoubleEG_Run2016H-UL2016_NanoAODv15-v1_NANOAOD",
