@@ -468,8 +468,7 @@ class categorizer(SkimmerABC):
 
         selection.add(
             "minjetkin",
-            (candidatejet.pt >= 300) & (candidatejet.pt < 1200) & (candidatejet.msd >= 40.0)
-            # & (candidatejet.msd < 201.0)
+            (candidatejet.pt >= 300) & (candidatejet.pt < 1200)
             & (abs(candidatejet.eta) < 2.5),
         )
 
