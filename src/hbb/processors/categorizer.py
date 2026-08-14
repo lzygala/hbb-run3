@@ -856,6 +856,7 @@ class categorizer(SkimmerABC):
                 "FatJet0_phi": candidatejet.phi,
                 "FatJet0_eta": candidatejet.eta,
                 "FatJet0_msd": candidatejet.msd,
+                "FatJet0_msd_rho": candidatejet.qcdrho,
                 "FatJet0_msdmatched": msd_matched,
                 "FatJet0_n2b1": candidatejet.n2b1,
                 "FatJet0_n3b1": candidatejet.n3b1,
@@ -870,6 +871,7 @@ class categorizer(SkimmerABC):
                 "FatJet1_phi": subleadingjet.phi,
                 "FatJet1_eta": subleadingjet.eta,
                 "FatJet1_msd": subleadingjet.msd,
+                "FatJet1_msd_rho": subleadingjet.qcdrho,
                 "FatJet1_pnetMass": subleadingjet.pnetmass,
                 "FatJet1_pnetTXbb": subleadingjet.particleNet_XbbVsQCD,
                 "FatJet1_pnetTXcc": subleadingjet.particleNet_XccVsQCD,
@@ -935,6 +937,8 @@ class categorizer(SkimmerABC):
                     "FatJet0_ParTPXbbXcc": candidatejet.ParTPXbbXcc,
                     "FatJet0_ParTPTopbWq": candidatejet.ParTPTopbWq,
                     "FatJet0_ParTPTopbWqq": candidatejet.ParTPTopbWqq,
+                    "FatJet0_ParTmassGeneric_rho": candidatejet.ParTmassGeneric_rho,
+                    "FatJet0_ParTmassX2p_rho": candidatejet.ParTmassX2p_rho,
                     "FatJet0_ParTmassGeneric": candidatejet.ParTmassGeneric,
                     "FatJet0_ParTmassX2p": candidatejet.ParTmassX2p,
                     "FatJet1_ParTPQCD": subleadingjet.ParTPQCD,
@@ -949,6 +953,8 @@ class categorizer(SkimmerABC):
                     "FatJet1_ParTPTopbWqq": subleadingjet.ParTPTopbWqq,
                     "FatJet1_ParTmassGeneric": subleadingjet.ParTmassGeneric,
                     "FatJet1_ParTmassX2p": subleadingjet.ParTmassX2p,
+                    "FatJet1_ParTmassGeneric_rho": subleadingjet.ParTmassGeneric_rho,
+                    "FatJet1_ParTmassX2p_rho": subleadingjet.ParTmassX2p_rho,
                 }
                 output_array = {**output_array, **parT_array}
 
@@ -956,6 +962,8 @@ class categorizer(SkimmerABC):
                     "FatJet0_ParTPXbbVsQCD": candidatejet.ParTPXbbVsQCD,
                     "FatJet0_ParTPXccVsQCD": candidatejet.ParTPXccVsQCD,
                     "FatJet0_ParTPXbbXcc": candidatejet.ParTPXbbXcc,
+                    "FatJet0_ParTmassGeneric": candidatejet.ParTmassGeneric,
+                    "FatJet0_ParTmassX2p": candidatejet.ParTmassX2p,
                 }
                 energy_var_array = {**energy_var_array, **energy_var_array_parT}
 
