@@ -464,7 +464,11 @@ class categorizer(SkimmerABC):
             xbbfatjets = goodfatjets[ak.argsort(goodfatjets.ParTPXbbXcc, axis=1, ascending=False)]
 
         candidatejet = ak.firsts(xbbfatjets[:, 0:1])
-        subleadingjet = ak.firsts(xbbfatjets[:, 1:2])
+        
+        leftover_jets = xbbfatjets[:, 1:]
+        leftover_jets_bypt = leftover_jets[ak.argsort(leftover_jets.pt, axis=1, ascending=False)]
+        
+        subleadingjet = ak.firsts(leftover_jets_bypt[:, 0:1])
 
         selection.add(
             "minjetkin",
