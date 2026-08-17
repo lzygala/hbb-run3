@@ -703,15 +703,27 @@ class categorizer(SkimmerABC):
 
             bosons = getBosons(events.GenPart)
             matchedBoson = candidatejet.nearest(bosons, axis=None, threshold=0.8)
+            matchedBoson_V = subleadingjet.nearest(bosons, axis=None, threshold=0.8)
+            
             match_mask = (abs(candidatejet.pt - matchedBoson.pt) / matchedBoson.pt < 0.5) & (
                 abs(candidatejet.msd - matchedBoson.mass) / matchedBoson.mass < 0.3
             )
+            match_mask_V = (abs(subleadingjet.pt - matchedBoson_V.pt) / matchedBoson_V.pt < 0.5) & (
+                abs(subleadingjet.msd - matchedBoson_V.mass) / matchedBoson_V.mass < 0.3
+            )
+            
             selmatchedBoson = ak.mask(matchedBoson, match_mask)
+            selmatchedBoson_V = ak.mask(matchedBoson_V, match_mask_V)
+            
             genflavor = bosonFlavor(selmatchedBoson)
-            genBosonPt = ak.fill_none(ak.firsts(bosons.pt), 0)
+            genflavor_V = bosonFlavor(selmatchedBoson_V)
+            
+            genBosonPt = ak.fill_none(selmatchedBoson.pt, 0)
+            genBosonPt_V = ak.fill_none(selmatchedBoson_V.pt, 0)
 
         # softdrop mass, 0 for genflavor == 0
         msd_matched = candidatejet.msd * (genflavor > 0) + candidatejet.msd * (genflavor == 0)
+        msd_matched_V = subleadingjet.msd * (genflavor_V > 0) + subleadingjet.msd * (genflavor_V == 0)
         
         signal_all = [
                 "trigger",
@@ -808,6 +820,8 @@ class categorizer(SkimmerABC):
             output_array = {
                 "GenBoson_pt": genBosonPt,
                 "GenFlavor": genflavor,
+                "GenBoson_V_pt": genBosonPt_V,
+                "GenFlavor_V": genflavor_V,
                 "nFatJet": ak.num(goodfatjets, axis=1),
                 "nJet": ak.num(goodjets, axis=1),
                 "nJet_outsideFatJet0": ak.num(ak4_opphem_ak8, axis=1),
