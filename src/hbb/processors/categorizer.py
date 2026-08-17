@@ -671,6 +671,8 @@ class categorizer(SkimmerABC):
         if isRealData:
             genflavor = ak.zeros_like(candidatejet.pt)
             genBosonPt = ak.zeros_like(candidatejet.pt)
+            genflavor_V = ak.zeros_like(candidatejet.pt)
+            genBosonPt_V = ak.zeros_like(candidatejet.pt)
         else:
 
             self.add_common_weights(weights, events, dataset)
