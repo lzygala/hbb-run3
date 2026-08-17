@@ -712,57 +712,23 @@ class categorizer(SkimmerABC):
 
         # softdrop mass, 0 for genflavor == 0
         msd_matched = candidatejet.msd * (genflavor > 0) + candidatejet.msd * (genflavor == 0)
+        
+        signal_all = [
+                "trigger",
+                "lumimask",
+                "metfilter",
+                "ak4jetveto",
+                "minjetkin",
+                "antiak4btagMedium",
+                "lowmet",
+                "noleptons",
+            ]
 
         regions = {
-            "signal-all": [
-                "trigger",
-                "lumimask",
-                "metfilter",
-                "ak4jetveto",
-                "minjetkin",
-                # "antiak4btagMediumOppHem",
-                "antiak4btagMedium",
-                "lowmet",
-                "noleptons",
-            ],
-            "signal-ggf": [
-                "trigger",
-                "lumimask",
-                "metfilter",
-                "ak4jetveto",
-                "minjetkin",
-                # "antiak4btagMediumOppHem",
-                "antiak4btagMedium",
-                "lowmet",
-                "noleptons",
-                "notvbf",
-                "not2FJ",
-            ],
-            "signal-vh": [
-                "trigger",
-                "lumimask",
-                "metfilter",
-                "ak4jetveto",
-                "minjetkin",
-                # "antiak4btagMediumOppHem",
-                "antiak4btagMedium",
-                "lowmet",
-                "noleptons",
-                "notvbf",
-                "2FJ",
-            ],
-            "signal-vbf": [
-                "trigger",
-                "lumimask",
-                "metfilter",
-                "ak4jetveto",
-                "minjetkin",
-                # "antiak4btagMediumOppHem",
-                "antiak4btagMedium",
-                "lowmet",
-                "noleptons",
-                "isvbf",
-            ],
+            "signal-all": signal_all.copy(),
+            "signal-ggf": signal_all.copy() + ["notvbf", "not2FJ"],
+            "signal-vh": signal_all.copy() + ["notvbf", "2FJ"],
+            "signal-vbf": signal_all.copy() + ["isvbf"],
             "control-tt": [
                 "muontrigger",
                 "lumimask",
@@ -802,15 +768,7 @@ class categorizer(SkimmerABC):
                 }
             )
 
-        btag_eff_cuts = [
-            "trigger",
-            "lumimask",
-            "metfilter",
-            "ak4jetveto",
-            "minjetkin",
-            "lowmet",
-            "noleptons",
-        ]
+        btag_eff_cuts = [x for x in regions["signal-all"] if x not in ["antiak4btagMedium", "antiak4btagMediumOppHem", "ak4btagMedium08"]]
 
         tic = time.time()
 
