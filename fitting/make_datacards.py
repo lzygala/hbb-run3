@@ -60,8 +60,6 @@ def rhalphabet(args):
 
     datacard_dir.mkdir(parents=True, exist_ok=True)
     initvals_dir.mkdir(parents=True, exist_ok=True)
-    if not (initvals_dir / "initial_vals_data_vh_bb.json").exists():
-        os.popen(f"cp -r initial_vals/* {initvals_dir}/ 2>/dev/null")
 
     # Load Configuration
     json_name = f"setup_{analysis}.json"
