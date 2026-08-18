@@ -26,7 +26,15 @@
             "name": "control-zgamma",
             "bins": [250, 1200],
             "bin_branch": "FatJet0_pt",
-            "bin_prefix": "pt"
+            "bin_prefix": "pt",
+            "tfmc_order": { 
+                "bb": {"pt": 0, "rho": 1 },
+                "cc": {"pt": 0, "rho": 1 }
+            },
+            "tfres_order": { 
+                "bb": {"pt": 0, "rho": 0 },
+                "cc": {"pt": 0, "rho": 0 }
+            }
         }
     },
 
