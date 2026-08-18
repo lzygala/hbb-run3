@@ -242,22 +242,24 @@ def rhalphabet(args):
                 # Initial Values Loading
                 initF = initvals_dir / f"initial_vals_{cat}_{reg}.json"
                 initial_vals = None
+                mc_pt_order = cats_cfg[cat]["tfmc_order"][reg]["pt"]
+                mc_rho_order = cats_cfg[cat]["tfmc_order"][reg]["rho"]
                 if initF.exists():
                     with initF.open() as f:
                         loaded = np.array(json.load(f)["initial_vals"])
-                    if (loaded.shape[0] - 1 == args.mc_pt_order) and (
-                        loaded.shape[1] - 1 == args.mc_rho_order
+                    if (loaded.shape[0] - 1 == mc_pt_order) and (
+                        loaded.shape[1] - 1 == mc_rho_order
                     ):
                         initial_vals = loaded
                     else:
                         print(f"Order Mismatch for {reg}. Resetting.")
 
                 if initial_vals is None:
-                    initial_vals = np.full((args.mc_pt_order + 1, args.mc_rho_order + 1), 1.0)
+                    initial_vals = np.full((mc_pt_order + 1, mc_rho_order + 1), 1.0)
 
                 tf_MCtempl = rl.BasisPoly(
                     f"tf_MCtempl_{cat}{reg}{year}",
-                    (args.mc_pt_order, args.mc_rho_order),
+                    (mc_pt_order, mc_rho_order),
                     ["pt", "rho"],
                     basis="Bernstein",
                     init_params=initial_vals,
@@ -327,7 +329,7 @@ def rhalphabet(args):
                 print(f"\n[FIT] All 5 attempts failed for {cat} {reg}.")
                 print(f"  Last status={qcdfit.status()}, covQual={qcdfit.covQual()}")
                 print(f"  covQual meanings: -1=not calc, 0=not pos-def, 1=forced pos-def, 2=approx, 3=full accurate")
-                print(f"  MC template order: pt={args.mc_pt_order}, rho={args.mc_rho_order}")
+                print(f"  MC template order: pt={mc_pt_order}, rho={mc_rho_order}")
                 print(f"  Inclusive P/F = {qcdeff:.4f} — if very small, model may be overparameterized")
                 raise RuntimeError(f"Could not fit QCD for {cat} {reg} after 5 tries!")
 
@@ -351,10 +353,12 @@ def rhalphabet(args):
             )
 
             # Residual
-            resid_init = np.full((args.res_pt_order + 1, args.res_rho_order + 1), 1.0)
+            res_pt_order = cats_cfg[cat]["tfres_order"][reg]["pt"]
+            res_rho_order = cats_cfg[cat]["tfres_order"][reg]["rho"]
+            resid_init = np.full((res_pt_order + 1, res_rho_order + 1), 1.0)
             tf_dataResidual = rl.BasisPoly(
                 f"tf_dataResidual_{year}{cat}{reg}",
-                (args.res_pt_order, args.res_rho_order),
+                (res_pt_order, res_rho_order),
                 ["pt", "rho"],
                 basis="Bernstein",
                 init_params=resid_init,
@@ -892,10 +896,6 @@ if __name__ == "__main__":
         "--outdir", default="results", help="Output directory for datacards and plots"
     )
     parser.add_argument("--analysis", required=True)
-    parser.add_argument("--mc-rho-order", type=int, default=1)
-    parser.add_argument("--mc-pt-order", type=int, default=0)
-    parser.add_argument("--res-rho-order", type=int, default=0)
-    parser.add_argument("--res-pt-order", type=int, default=0)
     parser.add_argument("--debug", action="store_true", help="Enter debug mode")
     args = parser.parse_args()
     rhalphabet(args)
