@@ -21,6 +21,7 @@
     "observable": {
         "name": "ParTMassGeneric",
         "branch_name": "FatJet0_ParTmassGeneric",
+        "qcdrho": "FatJet0_ParTmassGeneric_rho",
         "min": 59,
         "max": 220,
         "nbins": 23
@@ -92,16 +93,36 @@
     },
 
     "physics_model": {
-        "model": "HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel",
-        "maps": [
-            "map=.*/ggF_hbb:rggF_bb[1,-20,20]",
-            "map=.*/VBF_hbb:rVBF_bb[1,-20,20]",
-            "map=.*/WH_hbb:rVH_bb[1,-20,20]",
-            "map=.*/ZH_hbb:rVH_bb[1,-20,20]",
-            "map=.*/ggF_hcc:rggF_cc[1,-20,20]",
-            "map=.*/VBF_hcc:rVBF_cc[1,-20,20]",
-            "map=.*/WH_hcc:rVH_cc[1,-20,20]",
-            "map=.*/ZH_hcc:rVH_cc[1,-20,20]"
-        ]
+        "main": {
+            "model": "HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel",
+            "maps": [
+                "map=.*/ggF_hbb:rggF_bb[1,-20,20]",
+                "map=.*/VBF_hbb:rVBF_bb[1,-20,20]",
+                "map=.*/WH_hbb:rVH_bb[1,-20,20]",
+                "map=.*/ZH_hbb:rVH_bb[1,-20,20]",
+                "map=.*/ggF_hcc:rggF_cc[1,-20,20]",
+                "map=.*/VBF_hcc:rVBF_cc[1,-20,20]",
+                "map=.*/WH_hcc:rVH_cc[1,-20,20]",
+                "map=.*/ZH_hcc:rVH_cc[1,-20,20]"
+            ]
+        },
+        "couplingmodel": {
+            "model": "hbb.KappaBC:KBC",
+            "alt_pnames": {
+                "ggF_hbb" : "ggH_hbb",
+                "VBF_hbb" : "qqH_hbb",
+                "ggF_hcc" : "ggH_hcc",
+                "VBF_hcc" : "qqH_hcc"
+            },
+            "maps": [
+                "modes=ggH,qqH,VH",
+                "allowNegativeCouplings"
+            ],
+            "t2w_extra": "-m 125",
+            "build_preamble": [
+                "export CMSSW_BASE='/cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/combine-container:latest/home/cmsusr/CMSSW_16_0_0'",
+                "export COMBINE_SRC='/cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/combine-container:latest/home/cmsusr/CMSSW_16_0_0/src/HiggsAnalysis/CombinedLimit'"
+            ]
+        }
     }
 }

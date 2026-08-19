@@ -57,10 +57,12 @@
     },
 
     "physics_model": {
-        "model": "HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel",
-        "maps": [
-            "map=.*/zgammabb:r_bb[1,-100,100]",
-            "map=.*/zgammacc:r_cc[1,-100,100]"
-        ]
+        "main": {
+            "model": "HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel",
+            "maps": [
+                "map=.*/zgammabb:r_bb[1,-100,100]",
+                "map=.*/zgammacc:r_cc[1,-100,100]"
+            ]
+        }
     }
 }
