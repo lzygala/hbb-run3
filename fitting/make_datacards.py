@@ -567,15 +567,18 @@ def rhalphabet(args):
                                         )
 
                             # --- Higgs Signal Theory (PDF, ISR/FSR, Scale) ---
-                            if proc_name in ["ggF", "VBF", "WH", "ZH", "ggZH", "ttH"]:
+                            if any(s in proc_name for s in ["ggF", "VBF", "WH", "ZH", "ggZH", "ttH"]):
                                 # Mapping logic: if proc is WH/ZH/ggZH, use "VH" for the nuisance name
-                                proc_map_name = "VH" if proc_name in ["WH", "ZH", "ggZH"] else proc_name
+                                # Extended to the other signal processes, since we separated them by bb/cc truth generated mode
+                                proc_map_name = proc_name
+                                if any(s in proc_name for s in ["WH", "ZH", "ggZH"]):
+                                    proc_map_name = "VH" 
+                                elif any(s in proc_name for s in ["ggF"]):
+                                    proc_map_name = "ggF" 
+                                elif any(s in proc_name for s in ["VBF"]):
+                                    proc_map_name = "VBF" 
 
-                                for s_key, s_name in [
-                                    ("pdf", "pdf_Higgs"),
-                                    ("fsr", "FSRPartonShower"),
-                                    ("isr", "ISRPartonShower"),
-                                ]:
+                                for s_name in [ "pdf_Higgs", "FSRPartonShower", "ISRPartonShower", ]:
                                     s_up = get_merged_template(
                                         infile_path,
                                         info["components"],
@@ -596,7 +599,7 @@ def rhalphabet(args):
                                     )[0]
 
                                     # Look up using the mapped name (e.g., pdf_VH)
-                                    syst_obj = syst_map.get(f"{s_key}_{proc_map_name}")
+                                    syst_obj = syst_map.get(f"{s_name}_{proc_map_name}")
                                     if syst_obj:
                                         sample.setParamEffect(
                                             syst_obj,
@@ -605,7 +608,7 @@ def rhalphabet(args):
                                         )
 
                                 # ggF specific Scale (7pt)
-                                if proc_name in ["ggF", "ttH"]:
+                                if proc_map_name in ["ggF", "ttH"]:
                                     sc_up = get_merged_template(
                                         infile_path,
                                         info["components"],
@@ -625,11 +628,11 @@ def rhalphabet(args):
                                         syst="scalevar7ptDown",
                                     )[0]
                                     sample.setParamEffect(
-                                        syst_map[f"QCDScale_{proc_name}"],
+                                        syst_map[f"QCDScale_{proc_map_name}"],
                                         np.sum(sc_up) / np.sum(nominal),
                                         np.sum(sc_do) / np.sum(nominal),
                                     )
-                                elif proc_name in ["VBF", "VH"]:
+                                elif proc_map_name in ["VBF", "VH"]:
                                     sc_up = get_merged_template(
                                         infile_path,
                                         info["components"],
@@ -649,7 +652,7 @@ def rhalphabet(args):
                                         syst="scalevar3ptDown",
                                     )[0]
                                     sample.setParamEffect(
-                                        syst_map[f"QCDScale_{proc_name}"],
+                                        syst_map[f"QCDScale_{proc_map_name}"],
                                         np.sum(sc_up) / np.sum(nominal),
                                         np.sum(sc_do) / np.sum(nominal),
                                     )
