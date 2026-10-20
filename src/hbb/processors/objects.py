@@ -130,18 +130,26 @@ def set_ak4jets(jets: JetArray, isRealData: bool, year: str, nano_version: str, 
 
 
 # ak4 jet definition
-def good_ak4jets(jets: JetArray):
+def good_ak4jets(jets: JetArray, year: str):
     # Since the main AK4 collection for Run3 is the AK4 Puppi collection, jets originating from pileup are already suppressed at the jet clustering level
     # PuID might only be needed for forward region (WIP)
 
     # JETID: https://twiki.cern.ch/twiki/bin/viewauth/CMS/JetID13p6TeV
-    sel = (
+    base_sel = (
         (jets.pt > 30)
         & (jets.jetidtight)
         & (jets.jetidtightlepveto)
         & (abs(jets.eta) < 5.0)
+        
+        #HE correction - 22/23/24
         & ~((jets.pt <= 50) & (abs(jets.eta) > 2.5) & (abs(jets.eta) < 3.0))
     )
+    
+    #HF correction - 22/23 only
+    sel = base_sel
+    if year == "2022" or year == "2022EE" or year == "2023" or year == "2023BPix":
+        sel = base_sel & ~(jets.pt <= 50 & (abs(jets.eta) > 3.0) & (abs(jets.eta) < 5.0))
+        
 
     return jets[sel]
 
