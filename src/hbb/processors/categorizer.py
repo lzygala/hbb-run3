@@ -26,9 +26,11 @@ from hbb.corrections import (
     apply_jerc,
     correct_met,
     correct_muons,
+    correct_egm_obj,
     get_jetveto_event,
     lumiMasks,
     mupt_variations,
+    egm_variations
 )
 from hbb.jerc_eras import jerc_variations, run_map
 from hbb.processors.SkimmerABC import SkimmerABC
@@ -184,6 +186,8 @@ class categorizer(SkimmerABC):
             self._btagger = "btagUParTAK4B"
         self._btag_cut = b_taggers[self._year]["AK4"][self._btagger][self._btag_wp]
         self._mupt_type = "ptcorr"
+        self._elept_type = "ptcorr"
+        self._phopt_type = "ptcorr"
         if self._evaluate_BDT:
             self.bdt_model = get_BDT_model("src/hbb/data/MultiBDT_3cat_26Jun12.json")
 
@@ -239,6 +243,7 @@ class categorizer(SkimmerABC):
             ["nominal"]
             + [f"{var}_{dir}" for var in jerc_variations for dir in ["Up", "Down"]]
             + [f"{var}_{dir}" for var in mupt_variations for dir in ["Up", "Down"]]
+            + [f"{var}_{dir}" for var in egm_variations for dir in ["Up", "Down"]]
         )
 
         """
@@ -439,7 +444,7 @@ class categorizer(SkimmerABC):
             met = correct_met(met, jets)  # PuppiMET Recommended for Run3
 
         # Select jets, fatjets, and met collections according to jerc variation shift
-        if shift_name != "nominal" and "Muon" not in shift_name:
+        if shift_name != "nominal" and not any(obj in shift_name for obj in ["Muon", "Electron", "Photon"]):
             var, direction = shift_name.split("_")
             attr = jerc_variations[var]
             if var in ("JES", "JER"):
@@ -565,7 +570,12 @@ class categorizer(SkimmerABC):
         ak8_outside_dimuon = goodfatjets[(dR_leadm > 0.8) & (dR_subleadm > 0.8)]
         nak8_zmm = ak.num(ak8_outside_dimuon, axis=1)
 
-        goodelectron = good_electrons(events.Electron)
+        electrons = correct_egm_obj(events.Electron, "electron", self._year, isRealData, events.run)
+        if shift_name != "nominal" and "Electron" in shift_name:
+            var, direction = shift_name.split("_")
+            self._elept_type = f"{egm_variations[var]}_{direction.lower()}"
+            self._elemass_type = f"{egm_variations[var]}_{direction.lower()}"
+        goodelectron = good_electrons(electrons, self._elept_type)
         nelectrons = ak.num(goodelectron, axis=1)
 
         selection.add("noleptons", (nmuons == 0) & (nelectrons == 0))
@@ -584,11 +594,16 @@ class categorizer(SkimmerABC):
         )
         selection.add("muonDphiAK8", abs(ttbarmuon.delta_phi(candidatejet)) > 2 * np.pi / 3)
 
-        goodphotons = good_photons(events.Photon)
+        photons = correct_egm_obj(events.Photon, "photon", self._year, isRealData, events.run)
+        if shift_name != "nominal" and "Photon" in shift_name:
+            var, direction = shift_name.split("_")
+            self._phopt_type = f"{egm_variations[var]}_{direction.lower()}"
+            self._phomass_type = f"{egm_variations[var]}_{direction.lower()}"
+        goodphotons = good_photons(photons, self._phopt_type)
         nphotons = ak.num(goodphotons, axis=1)
 
-        ntightphotons = ak.num(tight_photons(events.Photon), axis=1)
-        vgammaphoton = ak.firsts(tight_photons(events.Photon))
+        ntightphotons = ak.num(tight_photons(photons, self._phopt_type), axis=1)
+        vgammaphoton = ak.firsts(tight_photons(photons, self._phopt_type))
 
         selection.add("onephoton", (nphotons == 1))
         selection.add("atleastonephoton", (ntightphotons >= 1))
@@ -857,7 +872,7 @@ class categorizer(SkimmerABC):
                 "FatJet1_pnetTXgg": subleadingjet.particleNet_XggVsQCD,
                 "VBFPair_mjj": vbf_mjj,
                 "VBFPair_deta": vbf_deta,
-                "Photon0_pt": vgammaphoton.pt,
+                "Photon0_pt": (getattr(vgammaphoton, self._phopt_type)),
                 "Photon0_phi": vgammaphoton.phi,
                 "Photon0_eta": vgammaphoton.eta,
                 "MET": met.pt,
