@@ -448,6 +448,19 @@ class categorizer(SkimmerABC):
 
         goodfatjets = good_ak8jets(fatjets)
         goodjets = good_ak4jets(jets)
+        
+        bc_jets = jets[
+            (jets.pt > 50)
+            & (jets.eta > -0.5) & (jets.eta < -0.1)
+            & (jets.phi > -2.1) & (jets.phi < -1.8)
+            & (jets.neEmEF > 0.9) & (jets.chEmEF > 0.9)
+            & (jets.delta_phi(met) > 2.9)
+        ]
+        selection.add(
+            "badcrystal",
+            ~(isRealData & (events.run >= 362433) & (events.run <= 367144)
+            & (met.pt > 100) & (ak.num(bc_jets, axis=1) > 0))
+        )
 
         cut_jetveto = get_jetveto_event(jets, self._year)
         selection.add("ak4jetveto", cut_jetveto)
@@ -738,6 +751,7 @@ class categorizer(SkimmerABC):
                 "trigger",
                 "lumimask",
                 "metfilter",
+                "badcrystal",
                 "ak4jetveto",
                 "minjetkin",
                 "antiak4btagMedium",
@@ -754,6 +768,7 @@ class categorizer(SkimmerABC):
                 "muontrigger",
                 "lumimask",
                 "metfilter",
+                "badcrystal",
                 "ak4jetveto",
                 "minjetkin",
                 "ak4btagMedium08",
@@ -765,6 +780,7 @@ class categorizer(SkimmerABC):
                 "egammatrigger",
                 "lumimask",
                 "metfilter",
+                "badcrystal",
                 "minjetkin_zgamma",
                 "atleastonephoton",
                 "antiak4btagMedium",
@@ -773,6 +789,7 @@ class categorizer(SkimmerABC):
                 "muontrigger",
                 "lumimask",
                 "metfilter",
+                "badcrystal",
                 "twoloosemuon",
                 "twomuon_zmm",
                 "muonkin_leadzmm",
