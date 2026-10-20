@@ -32,16 +32,16 @@ def trig_match_sel(
     return trig_obj_sel
 
 
-def good_photons(photons: PhotonArray):
+def good_photons(photons: PhotonArray, pt_type):
 
-    sel = (photons.pt > 15) & (photons.isScEtaEB | photons.isScEtaEE) & (photons.mvaID_WP80)
+    sel = (getattr(photons, pt_type) > 15) & (photons.isScEtaEB | photons.isScEtaEE) & (photons.mvaID_WP80)
 
     return photons[sel]
 
 
-def tight_photons(photons: PhotonArray):
+def tight_photons(photons: PhotonArray, pt_type):
 
-    sel = (photons.pt > 30) & (photons.isScEtaEB | photons.isScEtaEE) & (photons.cutBased == 3)
+    sel = (getattr(photons, pt_type) > 30) & (photons.isScEtaEB | photons.isScEtaEE) & (photons.cutBased == 3)
 
     return photons[sel]
 
@@ -71,9 +71,9 @@ def highpt_muons(muons: MuonArray, pt_type):
     return loosemuons[sel]
 
 
-def good_electrons(electrons: ElectronArray):
+def good_electrons(electrons: ElectronArray, pt_type):
     sel = (
-        (electrons.pt > 10)
+        (getattr(electrons, pt_type) > 10)
         & (abs(electrons.eta) < 2.5)
         & (electrons.pfRelIso03_all < 0.15)
         & (electrons.mvaNoIso_WP90)
