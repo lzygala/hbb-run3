@@ -48,6 +48,8 @@ pog_jsons = {
     "muon_pt" : ["MUO", "muon_scalesmearing.json.gz"],
     "electron": ["EGM", "electron.json.gz"],
     "photon": ["EGM", "photon.json.gz"],
+    "electronSS": ["EGM", "electronSS_EtDependent.json.gz"],
+    "photonSS": ["EGM", "photonSS_EtDependent.json.gz"],
     "pileup": ["LUM", "puWeights.json.gz"],
     "pileup2024": ["LUM", "puWeights_CDEFGHI.json.gz"], # file excludes 2024B 
     "fatjet_jec": ["JME", "fatJet_jerc.json.gz"],
@@ -582,6 +584,60 @@ def correct_muons(muons, events, year: str, isRealData: bool):
         muons["ptcorr_resol_down"] = pt_resol_var(muons.ptscalecorr, muons.ptcorr, muons.eta, "dn", cset, nested=True)
 
     return muons
+
+egm_variations = {
+    "ElectronPTScale": "ptcorr_scale",
+    "ElectronPTRes": "ptcorr_smear",
+    "PhotonPTScale": "ptcorr_scale",
+    "PhotonPTRes": "ptcorr_smear"
+}
+
+def correct_egm_obj(egm_obj_array, egm_obj_type: str, year: str, isRealData: bool, nano_version: str, event_run):
+    
+    cset = correctionlib.CorrectionSet.from_file(get_pog_json(f"{egm_obj_type}SS", year))
+    scale_ev = cset.compound["Scale"]
+    smear_and_syst_ev = cset.compound["SmearAndSyst"]
+    
+    egm_obj_array["event_run"] = ak.broadcast_arrays(event_run, egm_obj_array.pt)[0]
+    if "v15" in nano_version:
+        egm_obj_array["sc_eta"] = egm_obj_array.superclusterEta
+    else:
+        if egm_obj_type == "electron":
+            egm_obj_array["sc_eta"] = egm_obj_array.eta + egm_obj_array.deltaEtaSC
+        elif egm_obj_type == "photon":
+            egm_obj_array["sc_eta"] = egm_obj_array.eta
+            
+    e_flat, ne = ak.flatten(egm_obj_array), ak.num(egm_obj_array)
+    
+    def get_ss_sf(var):
+        sf = smear_and_syst_ev.evaluate(var, e_flat.pt, e_flat.r9, e_flat.sc_eta)
+        return ak.unflatten(sf, ne)
+    
+    if isRealData:
+        scale_flat = scale_ev.avaluate("scale", e_flat.event_run, e_flat.sc_eta, e_flat.r9, e_flat.pt, e_flat.seedGain)
+        scale = ak.unflatten(scale_flat, ne)
+        
+        egm_obj_array["ptcorr"] = egm_obj_array.pt * scale
+        
+    else:
+        rng = np.random.default_rng(seed=125)
+        random_numbers = rng.normal(loc=0.0, scale=1.0, size=len(egm_obj_array.pt))
+        
+        smearing = 1. + random_numbers * get_ss_sf("smear")
+        smearing_up = 1. + random_numbers * get_ss_sf("smear_up")
+        smearing_dn = 1. + random_numbers * get_ss_sf("smear_down")
+        smearing_scale_up = 1. + random_numbers * get_ss_sf("scale_up")
+        smearing_scale_dn = 1. + random_numbers * get_ss_sf("scale_down")
+        
+        egm_obj_array["ptcorr"] = egm_obj_array.pt * smearing
+        
+        egm_obj_array["ptcorr_smear_up"] = egm_obj_array.pt * smearing_up
+        egm_obj_array["ptcorr_smear_dn"] = egm_obj_array.pt * smearing_dn
+        
+        egm_obj_array["ptcorr_scale_up"] = egm_obj_array.pt * smearing_scale_up
+        egm_obj_array["ptcorr_scale_dn"] = egm_obj_array.pt * smearing_scale_dn
+        
+    return egm_obj_array
 
 def add_VJets_corrections(weights: Weights, dataset: str, genpart):
 
